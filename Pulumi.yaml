@@ -1,0 +1,3 @@
+name: admin-services
+runtime: nodejs
+description: A TypeScript program to deploy a containerized service on Google Cloud
