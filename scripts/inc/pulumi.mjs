@@ -48,9 +48,7 @@ export async function initStack(stackName) {
 
 export async function initGlobalConfig() {
   // read existing config
-  const currentConfig = await $`pulumi config --json`
-    .then(({ stdout }) => JSON.parse(stdout))
-    .then(parsePulumiConfig);
+  const currentConfig = await getPulumiStackConfig();
 
   // prompt for new config
   const gcpProject = await selectGcloudProject({
@@ -102,7 +100,18 @@ export async function initGlobalConfig() {
   console.log(chalk.green(`${figures.tick} Global configuration done`));
 }
 
-export function parsePulumiConfig(config) {
+export async function getPulumiStackConfig() {
+  return await $`pulumi config --json`
+    .then(({ stdout }) => JSON.parse(stdout))
+    .then(parsePulumiConfig);
+}
+
+export async function getPulumiStackOutput() {
+  return await $`pulumi stack output --json`
+    .then(({ stdout }) => JSON.parse(stdout));
+}
+
+function parsePulumiConfig(config) {
   const res = {};
   Object.keys(config).forEach(key => {
     const value = config[key];

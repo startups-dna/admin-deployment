@@ -87,6 +87,18 @@ export async function selectGcloudApiKey(opts = {}) {
   return keyString;
 }
 
+export async function selectGcloudSqlInstance(opts = {}) {
+  const instances = await $`gcloud sql instances list --format=json`.then(({ stdout }) => JSON.parse(stdout));
+  return select({
+    message: 'Select a Cloud SQL instance:',
+    ...opts,
+    choices: instances.map((item) => ({
+      name: `${item.name} (${item.databaseVersion})`,
+      value: item.name,
+    })),
+  });
+}
+
 export async function createServiceAccountKey(serviceAccount) {
   const accountName = serviceAccount.replace(/@.*/, '');
   const keyFile = `./config/${accountName}.json`;
