@@ -61,7 +61,7 @@ export async function selectGcloudProject(opts = {}) {
 }
 
 export async function selectGcloudServiceAccount(opts = {}) {
-  const serviceAccounts = await $`gcloud iam service-accounts list --format=json`.then(({ stdout }) => JSON.parse(stdout));
+  const serviceAccounts = await $`gcloud iam service-accounts list --format=json --project=${opts.gcpProject}`.then(({ stdout }) => JSON.parse(stdout));
   return select({
     message: 'Select a GCP service account:',
     ...opts,
@@ -72,7 +72,7 @@ export async function selectGcloudServiceAccount(opts = {}) {
 }
 
 export async function selectGcloudApiKey(opts = {}) {
-  const keys = await $`gcloud services api-keys list --format=json`.then(({ stdout }) => JSON.parse(stdout));
+  const keys = await $`gcloud services api-keys list --format=json --project=${opts.gcpProject}`.then(({ stdout }) => JSON.parse(stdout));
   const apiKeyId = await select({
     message: 'Select a GCP API key:',
     ...opts,
@@ -82,13 +82,13 @@ export async function selectGcloudApiKey(opts = {}) {
     })),
   });
 
-  const { keyString } = await $`gcloud services api-keys get-key-string ${apiKeyId} --format=json`.then(({ stdout }) => JSON.parse(stdout));
+  const { keyString } = await $`gcloud services api-keys get-key-string ${apiKeyId} --format=json --project=${opts.gcpProject}`.then(({ stdout }) => JSON.parse(stdout));
 
   return keyString;
 }
 
 export async function selectGcloudSqlInstance(opts = {}) {
-  const instances = await $`gcloud sql instances list --format=json`.then(({ stdout }) => JSON.parse(stdout));
+  const instances = await $`gcloud sql instances list --format=json --project=${opts.gcpProject}`.then(({ stdout }) => JSON.parse(stdout));
   return select({
     message: 'Select a Cloud SQL instance:',
     ...opts,
@@ -99,13 +99,13 @@ export async function selectGcloudSqlInstance(opts = {}) {
   });
 }
 
-export async function createServiceAccountKey(serviceAccount) {
+export async function createServiceAccountKey({ gcpProject, serviceAccount }) {
   const accountName = serviceAccount.replace(/@.*/, '');
   const keyFile = `./config/${accountName}.json`;
   if (fs.existsSync(keyFile)) {
     console.log(chalk.yellow(`Service account key already exists: ${keyFile}`));
     return keyFile;
   }
-  await execa({ stdio: 'inherit' })`gcloud iam service-accounts keys create ${keyFile} --iam-account=${serviceAccount}`;
+  await execa({ stdio: 'inherit' })`gcloud iam service-accounts keys create ${keyFile} --iam-account=${serviceAccount} --project=${gcpProject}`;
   return keyFile;
 }

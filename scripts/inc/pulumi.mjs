@@ -61,6 +61,11 @@ export async function initGlobalConfig() {
     default: currentConfig['gcp:region'] || 'europe-west1',
     validate: (value) => !!value || 'Region is required',
   });
+  const companyName = await input({
+    message: 'Enter your company name',
+    default: currentConfig[`${PULUMI_PROJECT}:companyName`],
+    validate: (value) => !!value || 'Company name is required',
+  });
   const domain = await input({
     message: 'Enter admin domain',
     default: currentConfig[`${PULUMI_PROJECT}:domain`],
@@ -72,16 +77,21 @@ export async function initGlobalConfig() {
     validate: (value) => !!value || 'IP address name is required',
   });
   const firebaseServiceAccount = await selectGcloudServiceAccount({
+    gcpProject,
     message: 'Select a GCP service account for Firebase Admin:',
     default: currentConfig['firebase:serviceAccount'],
     validate: (value) => !!value || 'Service account is required',
   });
-  const firebaseCredentials = await createServiceAccountKey(firebaseServiceAccount);
+  const firebaseCredentials = await createServiceAccountKey({
+    gcpProject,
+    serviceAccount: firebaseServiceAccount,
+  });
   const authTenantId = await input({
     message: 'Enter GCP Identity Platform tenant ID:',
     default: currentConfig['auth:tenantId'],
   });
   const firebaseApiKey = await selectGcloudApiKey({
+    gcpProject,
     message: 'Select a GCP API key for Firebase Client:',
     default: currentConfig['firebase:apiKey'],
     validate: (value) => !!value || 'API key is required',
@@ -91,6 +101,7 @@ export async function initGlobalConfig() {
   console.log(chalk.dim(`${figures.circle} Setting up global configuration...`));
   await $`pulumi config set gcp:project ${gcpProject}`;
   await $`pulumi config set gcp:region ${gcpRegion}`;
+  await $`pulumi config set companyName ${companyName}`;
   await $`pulumi config set domain ${domain}`;
   await $`pulumi config set ipName ${ipAddress}`;
   await $`pulumi config set firebase:serviceAccount ${firebaseServiceAccount}`;

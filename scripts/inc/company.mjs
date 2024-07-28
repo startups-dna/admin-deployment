@@ -20,6 +20,7 @@ export async function initCompanyConfig() {
   // }
 
   const sqlInstance = await selectGcloudSqlInstance({
+    gcpProject: currentConfig['gcp:project'],
     message: 'Select a Cloud SQL instance for Company service:',
     default: currentConfig['company:sqlInstance'],
     validate: (value) => !!value || 'Value is required',
