@@ -14,9 +14,13 @@ async function main() {
   console.log(chalk.dim(`${figures.circle} Gathering required data from stack...`));
   const config = await getPulumiStackConfig();
   const output = await getPulumiStackOutput();
-  if (output.company?.dbJobName) {
-    console.log(chalk.dim(`${figures.circle} Running company db migration...`));
-    await execa({ stdio: 'inherit' })`gcloud run jobs execute ${output.company?.dbJobName} --wait --args=npx,prisma,migrate,deploy --region=${config['gcp:region']} --project=${config['gcp:project']}`;
+
+  console.log(chalk.dim(`${figures.circle} Running company db migration...`));
+  await execa({ stdio: 'inherit' })`gcloud run jobs execute ${output.company?.dbJobName} --wait --args=npx,prisma,migrate,deploy --region=${config['gcp:region']} --project=${config['gcp:project']}`;
+
+  if (output.appTools?.dbJobName) {
+    console.log(chalk.dim(`${figures.circle} Running app-tools db migration...`));
+    await execa({ stdio: 'inherit' })`gcloud run jobs execute ${output.appTools?.dbJobName} --wait --args=npx,prisma,migrate,deploy --region=${config['gcp:region']} --project=${config['gcp:project']}`;
   }
 }
 

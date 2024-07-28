@@ -3,6 +3,7 @@ import * as gcp from "@pulumi/gcp";
 import { globalConfig } from '../config';
 
 export type LoadBalancerOpts = pulumi.ComponentResourceOptions & {
+  defaultService: pulumi.Output<string>;
   serviceMap: Map<string, pulumi.Output<string>>;
 };
 
@@ -29,11 +30,7 @@ export class LoadBalancer extends pulumi.ComponentResource {
       },
       pathMatchers: [{
         name: 'path-matcher',
-        defaultUrlRedirect: {
-          pathRedirect: `/${globalConfig.defaultService}/`,
-          redirectResponseCode: 'TEMPORARY_REDIRECT',
-          stripQuery: true,
-        },
+        defaultService: opts.defaultService,
         pathRules: [
           ...Array.from(opts.serviceMap.entries()).map(([path, service]) => ({
             paths: [`/${path}`, `/${path}/*`],

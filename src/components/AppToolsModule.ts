@@ -3,27 +3,27 @@ import * as gcp from '@pulumi/gcp';
 import * as random from '@pulumi/random';
 import { globalConfig } from '../config';
 
-const PREFIX = 'admin-company';
-const DB_USER = 'admin-company';
-const DB_NAME = 'admin-company';
+const PREFIX = 'admin-app-tools';
+const DB_USER = 'admin-app-tools';
+const DB_NAME = 'admin-app-tools';
 
-export class CompanyModule extends pulumi.ComponentResource {
+export class AppToolsModule extends pulumi.ComponentResource {
   service: gcp.cloudrunv2.Service;
   serviceBackend: gcp.compute.BackendService;
   dbJob: gcp.cloudrunv2.Job;
 
   constructor(opts: pulumi.ComponentResourceOptions = {}) {
-    super(`startupsdna:index:${CompanyModule.name}`, PREFIX, {}, opts);
+    super(`startupsdna:index:${AppToolsModule.name}`, PREFIX, {}, opts);
 
     const authConfig = new pulumi.Config('auth');
     const authTenantId = authConfig.get('tenantId');
-    const config = new pulumi.Config('company');
+    const config = new pulumi.Config('app-tools');
     const sqlInstanceName = config.require('sqlInstance');
     const cpu = config.get('cpu') || '1';
     const memory = config.get('memory') || '500Mi';
     const concurrency = config.getNumber('concurrency') || 80;
-    const serviceImage = config.get('serviceImage') || 'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/company:0.1.0';
-    const dbImage = config.get('dbImage') || 'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/company-db:0.1.0';
+    const serviceImage = config.get('serviceImage') || 'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/app-tools:6a5fa9a';
+    const dbImage = config.get('dbImage') || 'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/app-tools-db:6a5fa9a';
 
     const sqlInstance = gcp.sql.DatabaseInstance.get(`${PREFIX}-sql-instance`, sqlInstanceName);
 
@@ -87,10 +87,6 @@ export class CompanyModule extends pulumi.ComponentResource {
                   },
                 },
               },
-              {
-                name: 'ADMIN_AUTH_TENANT_ID',
-                value: authTenantId,
-              },
             ],
             volumeMounts: [
               { name: 'cloudsql', mountPath: '/cloudsql' },
@@ -133,6 +129,10 @@ export class CompanyModule extends pulumi.ComponentResource {
                       version: dbUrlVersion.version,
                     },
                   },
+                },
+                {
+                  name: 'ADMIN_AUTH_TENANT_ID',
+                  value: authTenantId,
                 },
               ],
               volumeMounts: [

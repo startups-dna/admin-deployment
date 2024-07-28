@@ -2,15 +2,15 @@ import * as pulumi from '@pulumi/pulumi';
 import * as gcp from '@pulumi/gcp';
 import { firebaseConfig, globalConfig } from '../config';
 
-const PREFIX = 'admin-auth';
+const PREFIX = 'admin-core';
 
-export class AuthModule extends pulumi.ComponentResource {
+export class CoreModule extends pulumi.ComponentResource {
   service: gcp.cloudrunv2.Service;
   serviceBackend: gcp.compute.BackendService;
   serviceNeg: gcp.compute.RegionNetworkEndpointGroup;
 
   constructor(opts: pulumi.ComponentResourceOptions = {}) {
-    super('startupsdna:index:AuthModule', PREFIX, {}, opts);
+    super(`startupsdna:index:${CoreModule.name}`, PREFIX, {}, opts);
 
     // Read configuration
     const config = new pulumi.Config('auth');
@@ -18,10 +18,14 @@ export class AuthModule extends pulumi.ComponentResource {
     const cpu = config.get('cpu') || '1';
     const memory = config.get('memory') || '300Mi';
     const concurrency = config.getNumber('concurrency') || 80;
-    const image = config.get('serviceImage') || 'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/auth:e61358c';
+    const image = config.get('serviceImage') || 'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/core:0.1.0';
 
     // Define resources
     const envs: gcp.types.input.cloudrunv2.ServiceTemplateContainerEnv[] = [
+      {
+        name: 'COMPANY_NAME',
+        value: globalConfig.companyName,
+      },
       {
         name: 'FIREBASE_PROJECT_ID',
         value: firebaseConfig.projectId || globalConfig.project,
@@ -31,16 +35,8 @@ export class AuthModule extends pulumi.ComponentResource {
         value: firebaseConfig.apiKey,
       },
       {
-        name: 'FIREBASE_TENANT_ID',
+        name: 'ADMIN_AUTH_TENANT_ID',
         value: authTenantId,
-      },
-      {
-        name: 'FIREBASE_CLIENT_EMAIL',
-        value: firebaseConfig.credentials.client_email,
-      },
-      {
-        name: 'FIREBASE_PRIVATE_KEY',
-        value: firebaseConfig.credentials.private_key,
       },
     ]
       // leave only envs with values
