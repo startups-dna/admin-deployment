@@ -3,9 +3,11 @@ import { LoadBalancer } from './components/LoadBalancer';
 import { CoreModule } from './components/CoreModule';
 import { CompanyModule } from './components/CompanyModule';
 import { AppToolsModule } from './components/AppToolsModule';
+import { ConfiguratorModule } from './components/ConfiguratorModule';
 
 const coreModule = new CoreModule();
 const companyModule = new CompanyModule();
+const configuratorModule = new ConfiguratorModule({ companyModule });
 const appToolsConfig = new pulumi.Config('app-tools');
 const appToolsModule = appToolsConfig.get('enabled') === 'true' ? new AppToolsModule() : undefined;
 
@@ -34,3 +36,7 @@ export const appTools = appToolsModule ? {
   serviceName: appToolsModule.service?.name,
   dbJobName: appToolsModule.dbJob?.name,
 } : undefined;
+
+export const configurator = {
+  url: configuratorModule.service.uri,
+}
