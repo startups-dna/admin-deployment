@@ -61,6 +61,8 @@ export class CoreModule extends pulumi.ComponentResource {
         ],
         maxInstanceRequestConcurrency: concurrency,
       },
+    }, {
+      parent: this,
     });
 
     // Create an IAM member to allow the service to be publicly accessible.
@@ -69,6 +71,8 @@ export class CoreModule extends pulumi.ComponentResource {
       service: this.service.name,
       role: 'roles/run.invoker',
       member: 'allUsers',
+    }, {
+      parent: this,
     });
 
     this.serviceNeg = new gcp.compute.RegionNetworkEndpointGroup(`${PREFIX}-neg`, {
@@ -76,6 +80,8 @@ export class CoreModule extends pulumi.ComponentResource {
       cloudRun: {
         service: this.service.name,
       },
+    }, {
+      parent: this,
     });
 
     this.serviceBackend = new gcp.compute.BackendService(`${PREFIX}-service-backend`, {
@@ -86,6 +92,8 @@ export class CoreModule extends pulumi.ComponentResource {
           group: this.serviceNeg.id,
         },
       ],
+    }, {
+      parent: this,
     });
   }
 }

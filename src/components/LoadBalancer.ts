@@ -15,10 +15,10 @@ export class LoadBalancer extends pulumi.ComponentResource {
   readonly url: pulumi.Output<string>;
 
   constructor(opts: LoadBalancerOpts) {
-    super('startupsdna:index:LoadBalancer', 'admin-lb', {}, opts);
+    super(`startupsdna:index:${LoadBalancer.name}`, 'admin-lb', {}, opts);
 
     // Define URL map
-    this.urlMap = new gcp.compute.URLMap('admin-lb', {
+    this.urlMap = new gcp.compute.URLMap('admin-url-map', {
       hostRules: [{
         hosts: [globalConfig.domain],
         pathMatcher: 'path-matcher',
@@ -38,22 +38,30 @@ export class LoadBalancer extends pulumi.ComponentResource {
           })),
         ],
       }],
+    }, {
+      parent: this,
     });
 
     this.sslCert = new gcp.compute.ManagedSslCertificate('admin-ssl', {
       managed: {
         domains: [globalConfig.domain],
       },
+    }, {
+      parent: this,
     });
 
     // Define HTTP proxies
     this.httpsProxy = new gcp.compute.TargetHttpsProxy('admin-target-https-proxy', {
       urlMap: this.urlMap.id,
       sslCertificates: [this.sslCert.id],
+    }, {
+      parent: this,
     });
 
     this.globalAddress = gcp.compute.getGlobalAddress({
       name: globalConfig.ipName,
+    }, {
+      parent: this,
     });
 
     // Define global forwarding rule
@@ -62,6 +70,8 @@ export class LoadBalancer extends pulumi.ComponentResource {
       ipAddress: this.globalAddress.then(({ id }) => id),
       portRange: '443',
       loadBalancingScheme: 'EXTERNAL_MANAGED',
+    }, {
+      parent: this,
     });
 
     // Export the URL of the load balancer
