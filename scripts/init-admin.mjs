@@ -1,7 +1,7 @@
 import { execa } from 'execa';
 import chalk from 'chalk';
-import figures from 'figures';
 import { input } from '@inquirer/prompts';
+import { echo } from './inc/echo.mjs';
 import { handleError } from './inc/common.mjs';
 import { checkGCloudCli, gcloudAuth } from './inc/gcloud.mjs';
 import { checkPulumiCli, getPulumiStackOutput } from './inc/pulumi.mjs';
@@ -13,12 +13,12 @@ async function main() {
   await checkPulumiCli();
   await gcloudAuth();
 
-  console.log(chalk.dim(`${figures.circle} Gathering required data from stack...`));
+  echo.info('Gathering required data from stack...');
   const output = await getPulumiStackOutput();
 
   const configuratorUrl = output.configurator?.url;
   if (!configuratorUrl) {
-    console.error(chalk.red(`${figures.cross} Configurator URL not found. Make sure the stack is deployed.`));
+    echo.error('Configurator URL not found. Make sure the stack is deployed.');
     process.exit(1);
   }
 
@@ -28,7 +28,7 @@ async function main() {
     validate: (value) => value ? true : 'Email is required',
   });
 
-  console.log(chalk.dim(`${figures.circle} Obtaining GCP ID token...`));
+  echo.info('Obtaining GCP ID token...');
   const { stdout: gcpIdToken } = await execa`gcloud auth print-identity-token`;
 
   const res = await fetch(`${configuratorUrl}/api/init-admin`, {
@@ -46,7 +46,7 @@ async function main() {
       return res.json();
     })
 
-  console.log(chalk.green(`${figures.tick} Admin user initialized`));
+  echo.success('Admin user initialized');
   console.log(chalk.dim(JSON.stringify(res, null, 2)));
 }
 

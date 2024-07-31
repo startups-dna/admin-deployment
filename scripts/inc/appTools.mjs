@@ -1,7 +1,6 @@
 import { confirm } from '@inquirer/prompts';
-import chalk from 'chalk';
-import figures from 'figures';
 import { $ } from 'execa';
+import { echo } from './echo.mjs';
 import { getPulumiStackConfig } from './pulumi.mjs';
 import { selectGcloudSqlInstance } from './gcloud.mjs';
 
@@ -27,5 +26,5 @@ export async function initAppToolsConfig() {
   });
   await $`pulumi config set app-tools:sqlInstance ${sqlInstance}`;
 
-  console.log(chalk.green(`${figures.tick} App Tools service configuration done`));
+  echo.success('App Tools service configuration done');
 }

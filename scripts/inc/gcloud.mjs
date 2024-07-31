@@ -1,44 +1,42 @@
 import { select } from '@inquirer/prompts';
-import chalk from 'chalk';
-import figures from 'figures';
 import { $, execa } from 'execa';
 import fs from 'fs';
 import { PULUMI_STATE_BUCKET } from './constants.mjs';
+import { echo } from './echo.mjs';
 
 export async function checkGCloudCli() {
-  console.log(chalk.dim(`${figures.circle} Checking gcloud CLI...`));
+  echo.info('Checking gcloud CLI...');
   try {
     await $`gcloud --version`;
-    console.log(chalk.green(`${figures.tick} gcloud is installed`));
+    echo.success('gcloud CLI is installed');
   } catch (e) {
-    console.error(chalk.red(`${figures.cross} gcloud is not installed`));
-    console.error('Please install gcloud: https://cloud.google.com/sdk/docs/install');
+    echo.error('gcloud CLI is not installed. Please visit this to install: https://cloud.google.com/sdk/docs/install');
     process.exit(1);
   }
 }
 
 export async function gcloudAuth() {
-  console.log(chalk.dim(`${figures.circle} Authenticating gcloud...`));
+  echo.info('Authenticating gcloud...');
   try {
     const { stdout } = await $`gcloud auth application-default print-access-token`;
     if (!stdout) {
       throw new Error('no access token');
     }
-    console.log(chalk.green(`${figures.tick} gcloud is authenticated`));
+    echo.success('gcloud is authenticated');
   }
   catch (e) {
-    console.error(chalk.red(`${figures.cross} gcloud reauthentication required`));
+    echo.warn('gcloud authentication is required to proceed');
     await $`gcloud auth application-default login`;
   }
 }
 
 export async function checkStateBucket() {
-  console.log(chalk.dim(`${figures.circle} Checking Pulumi state bucket ...`));
+  echo.info(`Checking Pulumi state bucket ...`);
   try {
     await $`gcloud storage buckets describe ${PULUMI_STATE_BUCKET}`;
-    console.log(chalk.green(`${figures.tick} Pulumi state bucket OK: ${PULUMI_STATE_BUCKET}`));
+    echo.success(`Pulumi state bucket OK: ${PULUMI_STATE_BUCKET}`);
   } catch (e) {
-    console.log(chalk.yellow(`Not found. Creating Pulumi state bucket [${PULUMI_STATE_BUCKET}]...`));
+    echo.warn(`Not found. Creating Pulumi state bucket [${PULUMI_STATE_BUCKET}]...`);
     await createStateBucket();
   }
 }
@@ -103,7 +101,7 @@ export async function createServiceAccountKey({ gcpProject, serviceAccount }) {
   const accountName = serviceAccount.replace(/@.*/, '');
   const keyFile = `./config/${accountName}.json`;
   if (fs.existsSync(keyFile)) {
-    console.log(chalk.yellow(`Service account key already exists: ${keyFile}`));
+    echo.warn(`Service account key already exists: ${keyFile}`);
     return keyFile;
   }
   await execa({ stdio: 'inherit' })`gcloud iam service-accounts keys create ${keyFile} --iam-account=${serviceAccount} --project=${gcpProject}`;

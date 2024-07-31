@@ -1,8 +1,8 @@
 import { $, execa } from 'execa';
 import chalk from 'chalk';
-import figures from 'figures';
 import { input } from '@inquirer/prompts';
 import { DEFAULT_STACK, PULUMI_PROJECT, PULUMI_STATE_BUCKET } from './constants.mjs';
+import { echo } from './echo.mjs';
 import {
   createServiceAccountKey,
   selectGcloudApiKey,
@@ -11,19 +11,19 @@ import {
 } from './gcloud.mjs';
 
 export async function checkPulumiCli() {
-  console.log(chalk.dim(`${figures.circle} Checking pulumi CLI...`));
+  echo.info('Checking pulumi CLI...');
   try {
     await $`pulumi version`;
-    console.log(chalk.green(`${figures.tick} pulumi CLI is installed`));
+    echo.success('pulumi CLI is installed');
   } catch (e) {
-    console.error(chalk.red(`${figures.cross} pulumi CLI is not installed`));
+    echo.error('pulumi CLI is not installed');
     console.error(chalk.blue`Please install pulumi: https://www.pulumi.com/docs/install/`);
     process.exit(1);
   }
 }
 
 export async function pulumiLogin() {
-  console.log(chalk.dim(`${figures.circle} Logging in to pulumi...`));
+  echo.info('Logging in to pulumi...');
   await execa({ stdio: 'inherit' })`pulumi login ${PULUMI_STATE_BUCKET}`;
 }
 
@@ -42,7 +42,7 @@ export async function checkPulumiStack() {
 
 export async function initStack(stackName) {
   // create pulumi stack
-  console.log(chalk.dim(`${figures.circle} Initializing pulumi stack [${stackName}]...`));
+  echo.info(`Initializing pulumi stack [${stackName}]...`);
   await $`pulumi stack init ${stackName}`;
 }
 
@@ -98,7 +98,7 @@ export async function initGlobalConfig() {
   });
 
   // set pulumi config
-  console.log(chalk.dim(`${figures.circle} Setting up global configuration...`));
+  echo.info('Setting up global configuration...');
   await $`pulumi config set gcp:project ${gcpProject}`;
   await $`pulumi config set gcp:region ${gcpRegion}`;
   await $`pulumi config set companyName ${companyName}`;
@@ -108,7 +108,7 @@ export async function initGlobalConfig() {
   await $`pulumi config set firebase:credentials ${firebaseCredentials}`;
   await $`pulumi config set firebase:apiKey ${firebaseApiKey}`;
   await $`pulumi config set auth:tenantId ${authTenantId}`;
-  console.log(chalk.green(`${figures.tick} Global configuration done`));
+  echo.success('Global configuration done');
 }
 
 export async function getPulumiStackConfig() {

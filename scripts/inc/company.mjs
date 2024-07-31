@@ -1,7 +1,6 @@
-import chalk from 'chalk';
-import figures from 'figures';
-import { getPulumiStackConfig } from './pulumi.mjs';
 import { $ } from 'execa';
+import { echo } from './echo.mjs';
+import { getPulumiStackConfig } from './pulumi.mjs';
 import { selectGcloudSqlInstance } from './gcloud.mjs';
 
 export async function initCompanyConfig() {
@@ -16,5 +15,5 @@ export async function initCompanyConfig() {
   });
   await $`pulumi config set company:sqlInstance ${sqlInstance}`;
 
-  console.log(chalk.green(`${figures.tick} Company service configuration done`));
+  echo.success('Company service configuration done');
 }
