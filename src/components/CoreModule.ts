@@ -13,8 +13,9 @@ export class CoreModule extends pulumi.ComponentResource {
     super(`startupsdna:admin:${CoreModule.name}`, PREFIX, {}, opts);
 
     // Read configuration
-    const config = new pulumi.Config('auth');
-    const authTenantId = config.get('tenantId');
+    const authConfig = new pulumi.Config('auth');
+    const authTenantId = authConfig.get('tenantId');
+    const config = new pulumi.Config('core');
     const cpu = config.get('cpu') || '1';
     const memory = config.get('memory') || '300Mi';
     const concurrency = config.getNumber('concurrency') || 80;
