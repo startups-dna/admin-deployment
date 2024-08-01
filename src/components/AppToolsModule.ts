@@ -13,7 +13,7 @@ export class AppToolsModule extends pulumi.ComponentResource {
   dbJob: gcp.cloudrunv2.Job;
 
   constructor(opts: pulumi.ComponentResourceOptions = {}) {
-    super(`startupsdna:index:${AppToolsModule.name}`, PREFIX, {}, opts);
+    super(`startupsdna:admin:${AppToolsModule.name}`, PREFIX, {}, opts);
 
     const authConfig = new pulumi.Config('auth');
     const authTenantId = authConfig.get('tenantId');

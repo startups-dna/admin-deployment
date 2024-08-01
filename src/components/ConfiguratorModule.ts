@@ -13,7 +13,7 @@ export class ConfiguratorModule extends pulumi.ComponentResource {
   service: gcp.cloudrunv2.Service;
 
   constructor(opts: ConfiguratorModuleOptions) {
-    super(`startupsdna:index:${ConfiguratorModule.name}`, PREFIX, {}, opts);
+    super(`startupsdna:admin:${ConfiguratorModule.name}`, PREFIX, {}, opts);
 
     const authConfig = new pulumi.Config('auth');
     const authTenantId = authConfig.get('tenantId');

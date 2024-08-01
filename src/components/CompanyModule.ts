@@ -16,7 +16,7 @@ export class CompanyModule extends pulumi.ComponentResource {
   readonly dbUrlSecretVersion: gcp.secretmanager.SecretVersion;
 
   constructor(opts: pulumi.ComponentResourceOptions = {}) {
-    super(`startupsdna:index:${CompanyModule.name}`, PREFIX, {}, opts);
+    super(`startupsdna:admin:${CompanyModule.name}`, PREFIX, {}, opts);
 
     const authConfig = new pulumi.Config('auth');
     const authTenantId = authConfig.get('tenantId');

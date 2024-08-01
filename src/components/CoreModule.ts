@@ -10,7 +10,7 @@ export class CoreModule extends pulumi.ComponentResource {
   serviceNeg: gcp.compute.RegionNetworkEndpointGroup;
 
   constructor(opts: pulumi.ComponentResourceOptions = {}) {
-    super(`startupsdna:index:${CoreModule.name}`, PREFIX, {}, opts);
+    super(`startupsdna:admin:${CoreModule.name}`, PREFIX, {}, opts);
 
     // Read configuration
     const config = new pulumi.Config('auth');

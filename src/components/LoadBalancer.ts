@@ -15,7 +15,7 @@ export class LoadBalancer extends pulumi.ComponentResource {
   readonly url: pulumi.Output<string>;
 
   constructor(opts: LoadBalancerOpts) {
-    super(`startupsdna:index:${LoadBalancer.name}`, 'admin-lb', {}, opts);
+    super(`startupsdna:admin:${LoadBalancer.name}`, 'admin-lb', {}, opts);
 
     // Define URL map
     this.urlMap = new gcp.compute.URLMap('admin-url-map', {
