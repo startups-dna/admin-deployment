@@ -5,6 +5,7 @@ import { DEFAULT_STACK, PULUMI_PROJECT } from './constants.mjs';
 import { echo } from './echo.mjs';
 import {
   createServiceAccountKey,
+  getGcpProject,
   selectGcloudApiKey,
   selectGcloudProject,
   selectGcloudServiceAccount
@@ -49,67 +50,76 @@ export async function initStack(stackName) {
 }
 
 export async function initGlobalConfig() {
+  echo.info('Setting up global configuration...');
+
   // read existing config
   const currentConfig = await getPulumiStackConfig();
 
-  // prompt for new config
+  // prompt for new config and set it
+
   const gcpProject = await selectGcloudProject({
     message: 'GCP project (Admin services will be deployed there)',
-    default: currentConfig['gcp:project'],
+    default: currentConfig['gcp:project'] || getGcpProject(),
     validate: (value) => !!value || 'Project is required',
   });
+  await $`pulumi config set gcp:project ${gcpProject}`;
+
   const gcpRegion = await input({
     message: 'Enter GCP default region',
     default: currentConfig['gcp:region'] || 'europe-west1',
     validate: (value) => !!value || 'Region is required',
   });
+  await $`pulumi config set gcp:region ${gcpRegion}`;
+
   const companyName = await input({
     message: 'Enter your company name',
     default: currentConfig[`${PULUMI_PROJECT}:companyName`],
     validate: (value) => !!value || 'Company name is required',
   });
+  await $`pulumi config set companyName ${companyName}`;
+
   const domain = await input({
     message: 'Enter admin domain',
     default: currentConfig[`${PULUMI_PROJECT}:domain`],
     validate: (value) => !!value || 'Domain is required',
   });
-  const ipAddress = await input({
+  await $`pulumi config set domain ${domain}`;
+
+  const ipName = await input({
     message: 'Enter admin GCP IP address name',
     default: currentConfig[`${PULUMI_PROJECT}:ipName`],
     validate: (value) => !!value || 'IP address name is required',
   });
-  const firebaseServiceAccount = await selectGcloudServiceAccount({
-    gcpProject,
-    message: 'Select a GCP service account for Firebase Admin:',
-    default: currentConfig['firebase:serviceAccount'],
-    validate: (value) => !!value || 'Service account is required',
-  });
-  const firebaseCredentials = await createServiceAccountKey({
-    gcpProject,
-    serviceAccount: firebaseServiceAccount,
-  });
+  await $`pulumi config set ipName ${ipName}`;
+
+  // const firebaseServiceAccount = await selectGcloudServiceAccount({
+  //   gcpProject,
+  //   message: 'Select a GCP service account for Firebase Admin:',
+  //   default: currentConfig['firebase:serviceAccount'],
+  //   validate: (value) => !!value || 'Service account is required',
+  // });
+  // await $`pulumi config set firebase:serviceAccount ${firebaseServiceAccount}`;
+
+  // const firebaseCredentials = await createServiceAccountKey({
+  //   gcpProject,
+  //   serviceAccount: firebaseServiceAccount,
+  // });
+  // await $`pulumi config set firebase:credentials ${firebaseCredentials}`;
+
   const authTenantId = await input({
     message: 'Enter GCP Identity Platform tenant ID:',
     default: currentConfig['auth:tenantId'],
   });
+  await $`pulumi config set auth:tenantId ${authTenantId}`;
+
   const firebaseApiKey = await selectGcloudApiKey({
     gcpProject,
     message: 'Select a GCP API key for Firebase Client:',
     default: currentConfig['firebase:apiKey'],
     validate: (value) => !!value || 'API key is required',
   });
-
-  // set pulumi config
-  echo.info('Setting up global configuration...');
-  await $`pulumi config set gcp:project ${gcpProject}`;
-  await $`pulumi config set gcp:region ${gcpRegion}`;
-  await $`pulumi config set companyName ${companyName}`;
-  await $`pulumi config set domain ${domain}`;
-  await $`pulumi config set ipName ${ipAddress}`;
-  await $`pulumi config set firebase:serviceAccount ${firebaseServiceAccount}`;
-  await $`pulumi config set firebase:credentials ${firebaseCredentials}`;
   await $`pulumi config set firebase:apiKey ${firebaseApiKey}`;
-  await $`pulumi config set auth:tenantId ${authTenantId}`;
+
   echo.success('Global configuration done');
 }
 
@@ -138,4 +148,8 @@ function parsePulumiConfig(config) {
   });
 
   return res;
+}
+
+export async function pulumiUp() {
+  await execa({ stdio: 'inherit' })`pulumi up`;
 }

@@ -1,3 +1,4 @@
+import { configDotenv } from 'dotenv';
 import { execa } from 'execa';
 import chalk from 'chalk';
 import { input } from '@inquirer/prompts';
@@ -5,6 +6,8 @@ import { echo } from './inc/echo.mjs';
 import { handleError } from './inc/common.mjs';
 import { checkGCloudCli, gcloudAuth } from './inc/gcloud.mjs';
 import { checkPulumiCli, getPulumiStackOutput } from './inc/pulumi.mjs';
+
+configDotenv({ override: true });
 
 async function main() {
   await checkGCloudCli();
