@@ -1,7 +1,7 @@
 import { $, execa } from 'execa';
 import chalk from 'chalk';
 import { input } from '@inquirer/prompts';
-import { DEFAULT_STACK, PULUMI_PROJECT, PULUMI_STATE_BUCKET } from './constants.mjs';
+import { DEFAULT_STACK, PULUMI_PROJECT } from './constants.mjs';
 import { echo } from './echo.mjs';
 import {
   createServiceAccountKey,
@@ -9,6 +9,7 @@ import {
   selectGcloudProject,
   selectGcloudServiceAccount
 } from './gcloud.mjs';
+import { getStateBucketId } from './stateBucket.mjs';
 
 export async function checkPulumiCli() {
   echo.info('Checking pulumi CLI...');
@@ -24,7 +25,8 @@ export async function checkPulumiCli() {
 
 export async function pulumiLogin() {
   echo.info('Logging in to pulumi...');
-  await execa({ stdio: 'inherit' })`pulumi login ${PULUMI_STATE_BUCKET}`;
+  const stateBucketId = getStateBucketId();
+  await execa({ stdio: 'inherit' })`pulumi login ${stateBucketId}`;
 }
 
 export async function checkPulumiStack() {

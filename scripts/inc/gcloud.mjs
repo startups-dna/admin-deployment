@@ -1,7 +1,6 @@
 import { select } from '@inquirer/prompts';
 import { $, execa } from 'execa';
 import fs from 'fs';
-import { PULUMI_STATE_BUCKET } from './constants.mjs';
 import { echo } from './echo.mjs';
 
 export async function checkGCloudCli() {
@@ -30,20 +29,11 @@ export async function gcloudAuth() {
   }
 }
 
-export async function checkStateBucket() {
-  echo.info(`Checking Pulumi state bucket ...`);
-  try {
-    await $`gcloud storage buckets describe ${PULUMI_STATE_BUCKET}`;
-    echo.success(`Pulumi state bucket OK: ${PULUMI_STATE_BUCKET}`);
-  } catch (e) {
-    echo.warn(`Not found. Creating Pulumi state bucket [${PULUMI_STATE_BUCKET}]...`);
-    await createStateBucket();
+export function getGcpProject() {
+  if (!process.env.GOOGLE_CLOUD_PROJECT) {
+    throw new Error('GOOGLE_CLOUD_PROJECT env variable is not set. Make sure it is set in .env file');
   }
-}
-
-async function createStateBucket() {
-  const gcpProject = await selectGcloudProject({ message: 'Enter GCP project ID to create Pulumi state bucket:' });
-  await $({ stdio: 'inherit' })`gcloud storage buckets create ${PULUMI_STATE_BUCKET} --project=${gcpProject}`;
+  return process.env.GOOGLE_CLOUD_PROJECT;
 }
 
 export async function selectGcloudProject(opts = {}) {
