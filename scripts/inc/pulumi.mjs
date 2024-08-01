@@ -32,18 +32,20 @@ export async function pulumiLogin() {
 
 export async function checkPulumiStack() {
   const stacks = await $`pulumi stack ls --project ${PULUMI_PROJECT} --json`.then(({ stdout }) => JSON.parse(stdout));
-  let currentStack = stacks.find((stack) => stack.current);
   if (stacks.length === 0) {
-    await initStack(DEFAULT_STACK);
-    currentStack = DEFAULT_STACK;
-  }
-
-  if (!currentStack) {
+    await initStack();
+  } else {
     await execa({ stdio: 'inherit' })`pulumi stack select`;
   }
 }
 
-export async function initStack(stackName) {
+export async function initStack() {
+  const stackName = await input({
+    message: 'Enter pulumi stack name',
+    default: DEFAULT_STACK,
+    validate: (value) => !!value || 'Stack name is required',
+  });
+
   // create pulumi stack
   echo.info(`Initializing pulumi stack [${stackName}]...`);
   await $`pulumi stack init ${stackName}`;
@@ -107,10 +109,14 @@ export async function initGlobalConfig() {
   // await $`pulumi config set firebase:credentials ${firebaseCredentials}`;
 
   const authTenantId = await input({
-    message: 'Enter GCP Identity Platform tenant ID:',
+    message: 'Enter GCP Identity Platform tenant ID (optional):',
     default: currentConfig['auth:tenantId'],
   });
-  await $`pulumi config set auth:tenantId ${authTenantId}`;
+  if (authTenantId.trim()) {
+    await $`pulumi config set auth:tenantId ${authTenantId}`;
+  } else {
+    await $`pulumi config rm auth:tenantId`;
+  }
 
   const firebaseApiKey = await selectGcloudApiKey({
     gcpProject,
