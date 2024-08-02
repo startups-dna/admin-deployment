@@ -29,6 +29,41 @@ export async function gcloudAuth() {
   }
 }
 
+export async function checkGcloudServices() {
+  const gcpProject = getGcpProject();
+
+  // echo.info(`Checking required GCP services...`);
+  // const services = await execa`gcloud services list --enabled --format="value(config.name)" --project=${gcpProject}`
+  //   .then(({ stdout }) => stdout.split('\n'));
+
+  const requiredServices = [
+    'compute.googleapis.com',
+    'sqladmin.googleapis.com',
+    'run.googleapis.com',
+    'secretmanager.googleapis.com',
+  ];
+
+  for (const service of requiredServices) {
+    echo.info(`Enabling service ${service}...`);
+    await execa`gcloud services enable ${service} --project=${gcpProject}`;
+  }
+}
+
+export async function setGcpServiceRoles() {
+  const project = getGcpProject();
+  const projectNumber = await getGcpProjectNumber();
+  const serviceAccount = `${projectNumber}-compute@developer.gserviceaccount.com`;
+  echo.info(`Setting necessary service roles for ${serviceAccount}...`);
+  await execa`gcloud projects add-iam-policy-binding ${project} --member=serviceAccount:${serviceAccount} --role=${'roles/secretmanager.secretAccessor'}`;
+  await execa`gcloud projects add-iam-policy-binding ${project} --member=serviceAccount:${serviceAccount} --role=${'roles/cloudsql.client'}`;
+}
+
+export async function getGcpProjectNumber() {
+  const gcpProject = getGcpProject();
+  const { stdout } = await $`gcloud projects describe ${gcpProject} --format=${'value(projectNumber)'}`;
+  return stdout.trim();
+}
+
 export function getGcpProject() {
   if (!process.env.GOOGLE_CLOUD_PROJECT) {
     throw new Error('GOOGLE_CLOUD_PROJECT env variable is not set. Make sure it is set in .env file');
@@ -61,6 +96,10 @@ export async function selectGcloudServiceAccount(opts = {}) {
 
 export async function selectGcloudApiKey(opts = {}) {
   const keys = await $`gcloud services api-keys list --format=json --project=${opts.gcpProject}`.then(({ stdout }) => JSON.parse(stdout));
+  if (keys.length === 0) {
+    throw new Error('No API keys found. Please create an API key in GCP console and rerun this command.');
+  }
+
   const apiKeyId = await select({
     message: 'Select a GCP API key:',
     ...opts,
@@ -77,6 +116,10 @@ export async function selectGcloudApiKey(opts = {}) {
 
 export async function selectGcloudSqlInstance(opts = {}) {
   const instances = await $`gcloud sql instances list --format=json --project=${opts.gcpProject}`.then(({ stdout }) => JSON.parse(stdout));
+  if (instances.length === 0) {
+    throw new Error('No Cloud SQL instances found. Please create a PostgreSQL instance in GCP console and rerun this command.');
+  }
+
   return select({
     message: 'Select a Cloud SQL instance:',
     ...opts,
