@@ -5,7 +5,7 @@ import { input } from '@inquirer/prompts';
 import { echo } from './inc/echo.mjs';
 import { handleError } from './inc/common.mjs';
 import { checkGCloudCli, gcloudAuth } from './inc/gcloud.mjs';
-import { checkPulumiCli, getPulumiStackOutput } from './inc/pulumi.mjs';
+import { checkPulumiCli, getPulumiStackConfig, getPulumiStackOutput } from './inc/pulumi.mjs';
 
 configDotenv({ override: true });
 
@@ -15,13 +15,18 @@ async function main() {
   await gcloudAuth();
 
   echo.info('Gathering required data from stack...');
+  const config = await getPulumiStackConfig();
   const output = await getPulumiStackOutput();
 
-  const configuratorUrl = output.configurator?.url;
-  if (!configuratorUrl) {
-    echo.error('Configurator URL not found. Make sure the stack is deployed.');
+  const gcpProject = config['gcp:project'];
+  const gcpRegion = config['gcp:region'];
+  const configuratorService = output.configurator?.serviceName;
+  if (!configuratorService) {
+    echo.error('Configurator service not found. Make sure the stack is deployed.');
     process.exit(1);
   }
+  const { stdout: configuratorUrl } = await execa`gcloud run services describe ${configuratorService} --project=${gcpProject} --region=${gcpRegion} --format=${'value(status.url)'}`;
+  echo.info(`Configurator URL: ${configuratorUrl}`);
 
   const email = await input({
     type: 'input',

@@ -38,5 +38,5 @@ export const appTools = appToolsModule ? {
 } : undefined;
 
 export const configurator = {
-  url: configuratorModule.service.uri,
+  serviceName: configuratorModule.service.name,
 }

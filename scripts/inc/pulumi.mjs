@@ -157,5 +157,5 @@ function parsePulumiConfig(config) {
 }
 
 export async function pulumiUp() {
-  await execa({ stdio: 'inherit' })`pulumi up`;
+  await execa({ stdio: 'inherit' })`pulumi up --yes`;
 }
