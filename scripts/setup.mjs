@@ -1,6 +1,6 @@
 import { existsSync, writeFileSync } from 'node:fs';
 import { configDotenv, parse } from 'dotenv';
-import { password } from '@inquirer/prompts';
+import generatePassword from 'generate-password';
 import { handleError } from './inc/common.mjs';
 import {
   checkGCloudCli,
@@ -41,12 +41,14 @@ async function initEnv() {
   }
 
   if (!env['PULUMI_CONFIG_PASSPHRASE']) {
-    const PULUMI_CONFIG_PASSPHRASE = await password({
-      message: 'Enter passphrase to encrypt secret state values',
-      validate: (value) => !!value || 'Value is required',
+    const PULUMI_CONFIG_PASSPHRASE = generatePassword.generate({
+      length: 16,
+      symbols: true,
+      numbers: true,
     });
     envContents += `\nPULUMI_CONFIG_PASSPHRASE=${PULUMI_CONFIG_PASSPHRASE}`;
     hasChanges = true;
+    echo.info(`Generated new Pulumi passphrase. It will be stored in .env file.`);
   }
 
   // write new config if changes were made
