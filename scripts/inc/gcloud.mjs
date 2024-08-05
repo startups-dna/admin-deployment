@@ -32,18 +32,21 @@ export async function gcloudAuth() {
 export async function checkGcloudServices() {
   const gcpProject = getGcpProject();
 
-  // echo.info(`Checking required GCP services...`);
-  // const services = await execa`gcloud services list --enabled --format="value(config.name)" --project=${gcpProject}`
-  //   .then(({ stdout }) => stdout.split('\n'));
+  echo.info(`Checking enabled GCP services...`);
+  const enabledServices = await execa`gcloud services list --enabled --format=${'value(config.name)'} --project=${gcpProject}`
+    .then(({ stdout }) => stdout.split('\n'));
 
   const requiredServices = [
     'compute.googleapis.com',
     'sqladmin.googleapis.com',
     'run.googleapis.com',
     'secretmanager.googleapis.com',
+    'cloudkms.googleapis.com',
   ];
 
-  for (const service of requiredServices) {
+  const missingServices = requiredServices.filter((service) => !enabledServices.includes(service));
+
+  for (const service of missingServices) {
     echo.info(`Enabling service ${service}...`);
     await execa`gcloud services enable ${service} --project=${gcpProject}`;
   }
