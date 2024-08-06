@@ -1,15 +1,15 @@
 import { echo } from './echo.mjs';
 import { $ } from 'execa';
-import { getGcpProject } from './gcloud.mjs';
+import { getGcpDefaultProject } from './gcloud.mjs';
 
 export function getStateBucketId() {
-  const gcpProject = getGcpProject();
+  const gcpProject = getGcpDefaultProject();
   return `gs://${gcpProject}-pulumi-state`;
 }
 
 export async function checkStateBucket() {
   echo.info(`Checking Pulumi state bucket ...`);
-  const gcpProject = getGcpProject();
+  const gcpProject = getGcpDefaultProject();
   const stateBucketId = getStateBucketId();
   try {
     await $`gcloud storage buckets describe ${stateBucketId} --project=${gcpProject}`;
@@ -21,7 +21,7 @@ export async function checkStateBucket() {
 }
 
 async function createStateBucket() {
-  const gcpProject = getGcpProject();
+  const gcpProject = getGcpDefaultProject();
   const stateBucketId = getStateBucketId();
   await $({ stdio: 'inherit' })`gcloud storage buckets create ${stateBucketId}
     --location=EUROPE-WEST1

@@ -4,8 +4,8 @@ import { input } from '@inquirer/prompts';
 import { DEFAULT_STACK, PULUMI_PROJECT } from './constants.mjs';
 import { echo } from './echo.mjs';
 import {
-  createServiceAccountKey,
-  getGcpProject,
+  createServiceAccountKey, getGcpDefaultRegion,
+  getGcpDefaultProject,
   selectGcloudApiKey,
   selectGcloudProject,
   selectGcloudServiceAccount
@@ -61,14 +61,14 @@ export async function initGlobalConfig() {
 
   const gcpProject = await selectGcloudProject({
     message: 'GCP project (Admin services will be deployed there)',
-    default: currentConfig['gcp:project'] || getGcpProject(),
+    default: currentConfig['gcp:project'] || getGcpDefaultProject(),
     validate: (value) => !!value || 'Project is required',
   });
   await $`pulumi config set gcp:project ${gcpProject}`;
 
   const gcpRegion = await input({
     message: 'Enter GCP default region',
-    default: currentConfig['gcp:region'] || 'europe-west1',
+    default: currentConfig['gcp:region'] || getGcpDefaultRegion(),
     validate: (value) => !!value || 'Region is required',
   });
   await $`pulumi config set gcp:region ${gcpRegion}`;
