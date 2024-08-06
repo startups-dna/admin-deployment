@@ -6,19 +6,19 @@ import { echo } from './echo.mjs';
 import { getStateBucketId } from './stateBucket.mjs';
 
 export async function checkPulumiCli() {
-  echo.info('Checking pulumi CLI...');
+  echo.log('Checking pulumi CLI...');
   try {
     await $`pulumi version`;
     echo.success('pulumi CLI is installed');
   } catch (e) {
     echo.error('pulumi CLI is not installed');
-    console.error(chalk.blue`Please install pulumi: https://www.pulumi.com/docs/install/`);
+    echo.info(`Please install pulumi:`, chalk.white.underline('https://www.pulumi.com/docs/install/'));
     process.exit(1);
   }
 }
 
 export async function pulumiLogin() {
-  echo.info('Logging in to pulumi...');
+  echo.log('Logging in to pulumi...');
   const stateBucketId = getStateBucketId();
   await execa({ stdio: 'inherit' })`pulumi login ${stateBucketId}`;
 }
@@ -28,7 +28,7 @@ export async function checkPulumiStack() {
   if (stacks.length === 0) {
     await initStack(DEFAULT_STACK);
   } else if (stacks.length === 1) {
-    echo.info(`Selecting pulumi stack [${stacks[0].name}]...`);
+    echo.log(`Selecting pulumi stack [${stacks[0].name}]...`);
     await execa({ stdio: 'inherit' })`pulumi stack select ${stacks[0].name}`;
   } else {
     await execa({ stdio: 'inherit' })`pulumi stack select`;
@@ -37,7 +37,7 @@ export async function checkPulumiStack() {
 
 export async function initStack(stackName) {
   // init pulumi stack
-  echo.info(`Initializing pulumi stack [${stackName}]...`);
+  echo.log(`Initializing pulumi stack [${stackName}]...`);
   await $`pulumi stack init ${stackName}`;
 }
 

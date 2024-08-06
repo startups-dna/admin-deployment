@@ -8,7 +8,7 @@ export function getStateBucketId() {
 }
 
 export async function checkStateBucket() {
-  echo.info(`Checking Pulumi state bucket ...`);
+  echo.log(`Checking Pulumi state bucket ...`);
   const gcpProject = getGcpDefaultProject();
   const stateBucketId = getStateBucketId();
   try {

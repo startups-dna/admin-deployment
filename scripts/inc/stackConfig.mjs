@@ -19,11 +19,11 @@ export function isConfigAlterMode() {
 }
 
 export async function initStackConfig() {
-  echo.info('Setting up stack configuration...');
+  echo.log('Setting up stack configuration...');
 
   // read existing config
   const currentConfig = await getPulumiStackConfig();
-  echo.info('Current stack configuration:');
+  echo.log('Current stack configuration:');
   console.log('- GCP project:', chalk.bold(currentConfig['gcp:project']));
   console.log('- GCP default region:', chalk.bold(currentConfig['gcp:region']));
 

@@ -14,7 +14,7 @@ async function main() {
   await checkPulumiCli();
   await gcloudAuth();
 
-  echo.info('Gathering required data from stack...');
+  echo.log('Gathering required data from stack...');
   const config = await getPulumiStackConfig();
   const output = await getPulumiStackOutput();
 
@@ -26,7 +26,7 @@ async function main() {
     process.exit(1);
   }
   const { stdout: configuratorUrl } = await execa`gcloud run services describe ${configuratorService} --project=${gcpProject} --region=${gcpRegion} --format=${'value(status.url)'}`;
-  echo.info(`Configurator URL: ${configuratorUrl}`);
+  echo.log(`Configurator URL: ${configuratorUrl}`);
 
   const email = await input({
     type: 'input',
@@ -34,7 +34,7 @@ async function main() {
     validate: (value) => value ? true : 'Email is required',
   });
 
-  echo.info('Obtaining GCP ID token...');
+  echo.log('Obtaining GCP ID token...');
   const { stdout: gcpIdToken } = await execa`gcloud auth print-identity-token`;
 
   const res = await fetch(`${configuratorUrl}/api/init-admin`, {

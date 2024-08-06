@@ -1,21 +1,23 @@
 import { select } from '@inquirer/prompts';
 import { $, execa } from 'execa';
 import fs from 'fs';
+import chalk from 'chalk';
 import { echo } from './echo.mjs';
 
 export async function checkGCloudCli() {
-  echo.info('Checking gcloud CLI...');
+  echo.log('Checking gcloud CLI...');
   try {
     await $`gcloud --version`;
     echo.success('gcloud CLI is installed');
   } catch (e) {
-    echo.error('gcloud CLI is not installed. Please visit this to install: https://cloud.google.com/sdk/docs/install');
+    echo.error('gcloud CLI is not installed.');
+    echo.info(`Please install gcloud:`, chalk.white.underline('https://cloud.google.com/sdk/docs/install'));
     process.exit(1);
   }
 }
 
 export async function gcloudAuth() {
-  echo.info('Authenticating gcloud...');
+  echo.log('Authenticating gcloud...');
   try {
     const { stdout } = await $`gcloud auth application-default print-access-token`;
     if (!stdout) {
@@ -32,7 +34,7 @@ export async function gcloudAuth() {
 export async function checkGcloudServices() {
   const gcpProject = getGcpDefaultProject();
 
-  echo.info(`Checking enabled GCP services...`);
+  echo.log(`Checking enabled GCP services...`);
   const enabledServices = await execa`gcloud services list --enabled --format=${'value(config.name)'} --project=${gcpProject}`
     .then(({ stdout }) => stdout.split('\n'));
 
@@ -45,8 +47,13 @@ export async function checkGcloudServices() {
 
   const missingServices = requiredServices.filter((service) => !enabledServices.includes(service));
 
+  if (missingServices.length === 0) {
+    echo.success('All required GCP services are enabled.');
+    return;
+  }
+
   for (const service of missingServices) {
-    echo.info(`Enabling service ${service}...`);
+    echo.log(`Enabling service ${service}...`);
     await execa`gcloud services enable ${service} --project=${gcpProject}`;
   }
 }
@@ -55,7 +62,7 @@ export async function setGcloudServiceRoles() {
   const project = getGcpDefaultProject();
   const projectNumber = await getGcloudProjectNumber(project);
   const serviceAccount = `${projectNumber}-compute@developer.gserviceaccount.com`;
-  echo.info(`Setting necessary service roles for ${serviceAccount}...`);
+  echo.log(`Setting necessary service roles for ${serviceAccount}...`);
   await execa`gcloud projects add-iam-policy-binding ${project} --member=serviceAccount:${serviceAccount} --role=${'roles/secretmanager.secretAccessor'}`;
   await execa`gcloud projects add-iam-policy-binding ${project} --member=serviceAccount:${serviceAccount} --role=${'roles/cloudsql.client'}`;
 }

@@ -60,7 +60,7 @@ async function initEnv() {
     });
     envContents += `\nPULUMI_CONFIG_PASSPHRASE=${PULUMI_CONFIG_PASSPHRASE}`;
     hasChanges = true;
-    echo.info(`Generated new Pulumi passphrase. It will be stored in .env file.`);
+    echo.log(`Generated new Pulumi passphrase. It will be stored in .env file.`);
   }
 
   // write new config if changes were made
@@ -110,14 +110,14 @@ async function maybeCreateSqlInstance() {
   const project = getGcpDefaultProject();
   const region = getGcpDefaultRegion();
 
-  echo.info(`Checking for existing Postgres SQL instances...`);
+  echo.log(`Checking for existing Postgres SQL instances...`);
   const instances = await getGcloudSqlInstances(project, 'databaseVersion:POSTGRES_*');
   if (instances.length > 0) {
     echo.success(`Found ${instances.length} Postgres SQL instance(s)`);
     return;
   }
 
-  echo.info(`No Postgres SQL instances found in your project [${project}].`);
+  echo.log(`No Postgres SQL instances found in your project [${project}].`);
   const yes = await confirm({
     message: `Do you want this script to create a new Cloud SQL instance for you ${chalk.grey('(Y)')} or create manually ${chalk.grey('(n)')}?`,
   });
@@ -128,7 +128,7 @@ async function maybeCreateSqlInstance() {
 
   const instanceId = 'main';
 
-  echo.info(`Creating Cloud SQL instance [${instanceId}]...`);
+  echo.log(`Creating Cloud SQL instance [${instanceId}]...`);
   await execa({ stdio: 'inherit' })`gcloud sql instances create ${instanceId}
     --database-version=POSTGRES_15
     --edition=enterprise
@@ -147,14 +147,14 @@ async function maybeCreateSqlInstance() {
 async function maybeReserveIpAddress() {
   const project = getGcpDefaultProject();
 
-  echo.info(`Checking for existing IP addresses...`);
+  echo.log(`Checking for existing IP addresses...`);
   const addresses = await getGcloudIpAddresses(project, 'addressType=EXTERNAL');
   if (addresses.length > 0) {
     echo.success(`Found ${addresses.length} IP address(es)`);
     return;
   }
 
-  echo.info(`No IP address reservation found in your project [${project}].`);
+  echo.log(`No IP address reservation found in your project [${project}].`);
   const yes = await confirm({
     message: `Do you want this script to reserve a new IP address for you ${chalk.grey('(Y)')} or create manually ${chalk.grey('(n)')}?`,
   });
@@ -165,7 +165,7 @@ async function maybeReserveIpAddress() {
 
   const addressName = 'admin-ip';
 
-  echo.info(`Reserving IP address [${addressName}]...`);
+  echo.log(`Reserving IP address [${addressName}]...`);
   await execa({ stdio: 'inherit' })`gcloud compute addresses create ${addressName}
     --network-tier=PREMIUM
     --ip-version=IPV4
@@ -175,14 +175,15 @@ async function maybeReserveIpAddress() {
   const { stdout: ipAddress } = await execa`gcloud compute addresses describe ${addressName} --format=${'value(address)'} --global --project=${project}`;
 
   echo.success(`IP address [${addressName}] reserved.`);
-  echo.warn(`Please, use the following IP address as A record in your DNS records: ${chalk.white(ipAddress)}.`);
+  echo.info('Please, use the following IP address as A record in your DNS records:');
+  echo.infoBox(ipAddress);
 }
 
 async function requestAccessInfo() {
   const project = getGcpDefaultProject();
   const projectNumber = await getGcloudProjectNumber(project);
-  echo.warn(`Please share the following service account email to StartupsDNA to grant access to docker image registry:`);
-  console.log(`service-${projectNumber}@serverless-robot-prod.iam.gserviceaccount.com`);
+  echo.info('Please share the following service account email to StartupsDNA to grant access to docker image registry:');
+  echo.infoBox(`service-${projectNumber}@serverless-robot-prod.iam.gserviceaccount.com`);
 }
 
 main().catch(handleError);
