@@ -155,6 +155,22 @@ export async function selectGcloudSqlInstance(opts = {}) {
   });
 }
 
+export async function selectGcloudIpAddress(opts = {}) {
+  const addresses = await getGcloudIpAddresses(opts.project, 'addressType=EXTERNAL');
+  if (addresses.length === 0) {
+    throw new Error('No IP addresses found. Please reserve a global external IP address in GCP console and rerun this command.');
+  }
+
+  return select({
+    message: 'Select an IP address:',
+    ...opts,
+    choices: addresses.map((item) => ({
+      name: `${item.name} (${item.address})`,
+      value: item.name,
+    })),
+  });
+}
+
 export async function createServiceAccountKey({ gcpProject, serviceAccount }) {
   const accountName = serviceAccount.replace(/@.*/, '');
   const keyFile = `./config/${accountName}.json`;

@@ -4,11 +4,11 @@ import { input } from '@inquirer/prompts';
 import { DEFAULT_STACK, PULUMI_PROJECT } from './constants.mjs';
 import { echo } from './echo.mjs';
 import {
-  createServiceAccountKey, getGcpDefaultRegion,
+  getGcpDefaultRegion,
   getGcpDefaultProject,
   selectGcloudApiKey,
   selectGcloudProject,
-  selectGcloudServiceAccount
+  selectGcloudIpAddress,
 } from './gcloud.mjs';
 import { getStateBucketId } from './stateBucket.mjs';
 
@@ -87,8 +87,9 @@ export async function initGlobalConfig() {
   });
   await $`pulumi config set domain ${domain}`;
 
-  const ipName = await input({
-    message: 'Enter admin GCP IP address name',
+  const ipName = await selectGcloudIpAddress({
+    project: gcpProject,
+    message: 'Select GCP IP address for admin services:',
     default: currentConfig[`${PULUMI_PROJECT}:ipName`],
     validate: (value) => !!value || 'IP address name is required',
   });
