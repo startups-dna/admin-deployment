@@ -26,20 +26,17 @@ export async function pulumiLogin() {
 export async function checkPulumiStack() {
   const stacks = await $`pulumi stack ls --project ${PULUMI_PROJECT} --json`.then(({ stdout }) => JSON.parse(stdout));
   if (stacks.length === 0) {
-    await initStack();
+    await initStack(DEFAULT_STACK);
+  } else if (stacks.length === 1) {
+    echo.info(`Selecting pulumi stack [${stacks[0].name}]...`);
+    await execa({ stdio: 'inherit' })`pulumi stack select ${stacks[0].name}`;
   } else {
     await execa({ stdio: 'inherit' })`pulumi stack select`;
   }
 }
 
-export async function initStack() {
-  const stackName = await input({
-    message: 'Enter pulumi stack name',
-    default: DEFAULT_STACK,
-    validate: (value) => !!value || 'Stack name is required',
-  });
-
-  // create pulumi stack
+export async function initStack(stackName) {
+  // init pulumi stack
   echo.info(`Initializing pulumi stack [${stackName}]...`);
   await $`pulumi stack init ${stackName}`;
 }
