@@ -12,10 +12,12 @@ npm install
    ./setup
    ```
 
-3. Create new SQL instance in Google Cloud (name example: `main`):
-   - Engine: PostgreSQL 15 or above;
+3. **This step is optional, if you didn't choose manual creation**. <br> 
+   Create new SQL instance in Google Cloud (name example: `main`):
+      - Engine: PostgreSQL 15 or above;
 
-4. Create new IP address in Google Cloud (name example: `admin-ip`).<br/> 
+4. **This step is optional, if you didn't choose manual creation**. <br>
+   Create new IP address in Google Cloud (name example: `admin-ip`).<br/> 
    Requirements:
       - Network Service Tier: Premium;
       - IP version: IPv4;
@@ -51,4 +53,12 @@ In order to initialize the admin user, run the following command:
 
 ```bash
 ./init-admin
+```
+
+## Alter mode
+
+If you want to alter the deployment configuration, you can run the command with special flag:
+
+```bash
+./deploy --alter
 ```

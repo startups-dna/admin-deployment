@@ -3,13 +3,6 @@ import chalk from 'chalk';
 import { input } from '@inquirer/prompts';
 import { DEFAULT_STACK, PULUMI_PROJECT } from './constants.mjs';
 import { echo } from './echo.mjs';
-import {
-  getGcpDefaultRegion,
-  getGcpDefaultProject,
-  selectGcloudApiKey,
-  selectGcloudProject,
-  selectGcloudIpAddress,
-} from './gcloud.mjs';
 import { getStateBucketId } from './stateBucket.mjs';
 
 export async function checkPulumiCli() {
@@ -51,85 +44,6 @@ export async function initStack() {
   await $`pulumi stack init ${stackName}`;
 }
 
-export async function initGlobalConfig() {
-  echo.info('Setting up global configuration...');
-
-  // read existing config
-  const currentConfig = await getPulumiStackConfig();
-
-  // prompt for new config and set it
-
-  const gcpProject = await selectGcloudProject({
-    message: 'GCP project (Admin services will be deployed there)',
-    default: currentConfig['gcp:project'] || getGcpDefaultProject(),
-    validate: (value) => !!value || 'Project is required',
-  });
-  await $`pulumi config set gcp:project ${gcpProject}`;
-
-  const gcpRegion = await input({
-    message: 'Enter GCP default region',
-    default: currentConfig['gcp:region'] || getGcpDefaultRegion(),
-    validate: (value) => !!value || 'Region is required',
-  });
-  await $`pulumi config set gcp:region ${gcpRegion}`;
-
-  const companyName = await input({
-    message: 'Enter your company name',
-    default: currentConfig[`${PULUMI_PROJECT}:companyName`],
-    validate: (value) => !!value || 'Company name is required',
-  });
-  await $`pulumi config set companyName ${companyName}`;
-
-  const domain = await input({
-    message: 'Enter admin domain',
-    default: currentConfig[`${PULUMI_PROJECT}:domain`],
-    validate: (value) => !!value || 'Domain is required',
-  });
-  await $`pulumi config set domain ${domain}`;
-
-  const ipName = await selectGcloudIpAddress({
-    project: gcpProject,
-    message: 'Select GCP IP address for admin services:',
-    default: currentConfig[`${PULUMI_PROJECT}:ipName`],
-    validate: (value) => !!value || 'IP address name is required',
-  });
-  await $`pulumi config set ipName ${ipName}`;
-
-  // const firebaseServiceAccount = await selectGcloudServiceAccount({
-  //   gcpProject,
-  //   message: 'Select a GCP service account for Firebase Admin:',
-  //   default: currentConfig['firebase:serviceAccount'],
-  //   validate: (value) => !!value || 'Service account is required',
-  // });
-  // await $`pulumi config set firebase:serviceAccount ${firebaseServiceAccount}`;
-
-  // const firebaseCredentials = await createServiceAccountKey({
-  //   gcpProject,
-  //   serviceAccount: firebaseServiceAccount,
-  // });
-  // await $`pulumi config set firebase:credentials ${firebaseCredentials}`;
-
-  const authTenantId = await input({
-    message: 'Enter GCP Identity Platform tenant ID (optional):',
-    default: currentConfig['auth:tenantId'],
-  });
-  if (authTenantId.trim()) {
-    await $`pulumi config set auth:tenantId ${authTenantId}`;
-  } else {
-    await $`pulumi config rm auth:tenantId`;
-  }
-
-  const firebaseApiKey = await selectGcloudApiKey({
-    gcpProject,
-    message: 'Select a GCP API key for Firebase Client:',
-    default: currentConfig['firebase:apiKey'],
-    validate: (value) => !!value || 'API key is required',
-  });
-  await $`pulumi config set firebase:apiKey ${firebaseApiKey}`;
-
-  echo.success('Global configuration done');
-}
-
 export async function getPulumiStackConfig() {
   return await $`pulumi config --json`
     .then(({ stdout }) => JSON.parse(stdout))
@@ -149,7 +63,7 @@ function parsePulumiConfig(config) {
       return;
     }
 
-    if (value.value) {
+    if (undefined !== value.value) {
       res[key] = value.value;
     }
   });
