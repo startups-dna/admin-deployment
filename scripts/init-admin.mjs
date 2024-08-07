@@ -5,7 +5,13 @@ import { input } from '@inquirer/prompts';
 import { echo } from './inc/echo.mjs';
 import { handleError } from './inc/common.mjs';
 import { checkGCloudCli, gcloudAuth } from './inc/gcloud.mjs';
-import { checkPulumiCli, getPulumiStackConfig, getPulumiStackOutput } from './inc/pulumi.mjs';
+import {
+  checkPulumiCli,
+  checkPulumiStack,
+  getPulumiStackConfig,
+  getPulumiStackOutput,
+  pulumiLogin
+} from './inc/pulumi.mjs';
 
 configDotenv({ override: true });
 
@@ -13,6 +19,8 @@ async function main() {
   await checkGCloudCli();
   await checkPulumiCli();
   await gcloudAuth();
+  await pulumiLogin();
+  await checkPulumiStack();
 
   echo.log('Gathering required data from stack...');
   const config = await getPulumiStackConfig();
