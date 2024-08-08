@@ -42,9 +42,13 @@ export async function initStack(stackName) {
 }
 
 export async function getPulumiStackConfig() {
-  return await $`pulumi config --json`
+  return await $`pulumi config --show-secrets --json`
     .then(({ stdout }) => JSON.parse(stdout))
     .then(parsePulumiConfig);
+}
+
+export async function pulumiConfigSet(key, value, isSecret = false) {
+  return execa`pulumi config set ${isSecret ? '--secret' : '--plaintext'} --path ${key} ${String(value)}`;
 }
 
 export async function getPulumiStackOutput() {
@@ -60,7 +64,9 @@ function parsePulumiConfig(config) {
       return;
     }
 
-    if (undefined !== value.value) {
+    if (undefined !== value.objectValue) {
+      res[key] = value.objectValue;
+    } else if (undefined !== value.value) {
       res[key] = value.value;
     }
   });

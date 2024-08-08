@@ -14,6 +14,8 @@
     "execa": "^9.3.0",
     "figures": "^6.1.0",
     "generate-password": "^1.7.1",
+    "get-value": "^3.0.1",
+    "set-value": "^4.1.0",
     "typescript": "^5.0.0"
   }
 }

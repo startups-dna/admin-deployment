@@ -8,7 +8,7 @@ import { ConfiguratorModule } from './components/ConfiguratorModule';
 const coreModule = new CoreModule();
 const companyModule = new CompanyModule();
 const configuratorModule = new ConfiguratorModule({ companyModule });
-const appToolsConfig = new pulumi.Config('app-tools');
+const appToolsConfig = new pulumi.Config('appTools');
 const appToolsModule = appToolsConfig.get('enabled') === 'true' ? new AppToolsModule() : undefined;
 
 // Define service map
