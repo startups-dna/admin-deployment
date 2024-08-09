@@ -97,7 +97,7 @@ export async function selectGcloudProject(opts = {}) {
     message: 'Select a GCP project:',
     ...opts,
     choices: projects.map((item) => ({
-      name: `${item.name} (${item.projectNumber})`,
+      name: `${item.name} (${item.projectId})`,
       value: item.projectId,
     })),
   });
