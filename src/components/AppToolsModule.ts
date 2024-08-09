@@ -1,19 +1,20 @@
 import * as pulumi from '@pulumi/pulumi';
 import * as gcp from '@pulumi/gcp';
-import * as random from '@pulumi/random';
 import * as fs from 'node:fs';
 import { globalConfig } from '../config';
+import { DatabaseResources } from './DatabaseResources';
 
 const PREFIX = 'admin-app-tools';
 const DB_USER = 'admin-app-tools';
 const DB_NAME = 'admin-app-tools';
 
-type Envs = gcp.types.input.cloudrunv2.ServiceTemplateContainerEnv[];
+type ServiceEnvs = gcp.types.input.cloudrunv2.ServiceTemplateContainerEnv[];
 
 export class AppToolsModule extends pulumi.ComponentResource {
-  service: gcp.cloudrunv2.Service;
-  serviceBackend: gcp.compute.BackendService;
-  dbJob: gcp.cloudrunv2.Job;
+  readonly database: DatabaseResources;
+  readonly service: gcp.cloudrunv2.Service;
+  readonly serviceBackend: gcp.compute.BackendService;
+  readonly dbJob: gcp.cloudrunv2.Job;
 
   constructor(opts: pulumi.ComponentResourceOptions = {}) {
     super(`startupsdna:admin:${AppToolsModule.name}`, PREFIX, {}, opts);
@@ -42,97 +43,38 @@ export class AppToolsModule extends pulumi.ComponentResource {
     };
     const googlePlay = config.getSecretObject<GooglePlayConfig>('googlePlay');
 
-    const sqlInstance = gcp.sql.DatabaseInstance.get(`${PREFIX}-sql-instance`, sqlInstanceName);
-
-    const dbPassword = new random.RandomPassword(`${PREFIX}-db-password`, {
-      length: 16,
-      special: false,
+    this.database = new DatabaseResources(PREFIX, {
+      instanceId: sqlInstanceName,
+      dbName: DB_NAME,
+      dbUser: DB_USER,
     }, {
       parent: this,
     });
 
-    const db = new gcp.sql.Database(`${PREFIX}-db`, {
-      name: DB_NAME,
-      instance: sqlInstance.name,
-    }, {
-      retainOnDelete: true,
-      parent: this,
-    });
-
-    const dbUser = new gcp.sql.User(`${PREFIX}-db-user`, {
-      name: DB_USER,
-      instance: sqlInstance.name,
-      type: 'BUILT_IN',
-      password: dbPassword.result,
-    }, {
-      retainOnDelete: true,
-      parent: this,
-    });
-
-    const dbUrlSecret = new gcp.secretmanager.Secret(`${PREFIX}-db-url`, {
-      secretId: `${PREFIX}-database-url`,
-      replication: {
-        auto: {},
-      },
-    }, {
-      parent: this,
-    });
-
-    const dbUrl = pulumi.interpolate`postgres://${dbUser.name}:${dbPassword.result}@localhost/${db.name}?schema=public&host=/cloudsql/${sqlInstance.connectionName}`;
-
-    const dbUrlVersion = new gcp.secretmanager.SecretVersion(`${PREFIX}-db-url`, {
-      secret: dbUrlSecret.id,
-      secretData: dbUrl,
-    }, {
-      parent: this,
-    });
-
-    const envs: Envs = [
-      {
-        name: 'DATABASE_URL',
-        valueSource: {
-          secretKeyRef: {
-            secret: dbUrlSecret.secretId,
-            version: dbUrlVersion.version,
-          },
-        },
-      },
-      {
-        name: 'LOGGER',
-        value: 'gcloud',
-      },
-      {
-        name: 'LOGGER_NAME',
-        value: 'app-tools',
-      },
-      {
-        name: 'LOGGER_LEVEL',
-        value: 'debug',
-      },
-    ];
+    const serviceEnvs: ServiceEnvs = [];
 
     if (authTenantId) {
-      envs.push({
+      serviceEnvs.push({
         name: 'ADMIN_AUTH_TENANT_ID',
         value: authTenantId,
       });
     }
 
     if (appStoreAppId) {
-      envs.push({
+      serviceEnvs.push({
         name: 'APP_STORE_APP_ID',
         value: appStoreAppId,
       });
     }
 
     if (googlePlayPackageName) {
-      envs.push({
+      serviceEnvs.push({
         name: 'GOOGLE_PLAY_PACKAGE_NAME',
         value: googlePlayPackageName,
       });
     }
 
-    const appStoreConnectEnvs = appStoreConnect?.apply<Envs>((config) => {
+    const appStoreConnectEnvs = appStoreConnect?.apply<ServiceEnvs>((config) => {
       if (!config.enabled) {
         return [];
       }
@@ -144,7 +86,7 @@ export class AppToolsModule extends pulumi.ComponentResource {
         );
       }
       const appStoreConnectPrivateKey = fs.readFileSync(config.privateKeyFile).toString();
-      const envs: Envs = [
+      const envs: ServiceEnvs = [
         {
           name: 'APP_STORE_ENABLED',
           value: 'true',
@@ -166,7 +108,7 @@ export class AppToolsModule extends pulumi.ComponentResource {
       return envs;
     });
 
-    const googlePlayEnvs = googlePlay?.apply<Envs>((config) => {
+    const googlePlayEnvs = googlePlay?.apply<ServiceEnvs>((config) => {
       if (!config.enabled) {
         return [];
       }
@@ -178,7 +120,7 @@ export class AppToolsModule extends pulumi.ComponentResource {
         );
       }
       const googlePlayServiceKey = JSON.parse(fs.readFileSync(config.serviceKeyFile).toString());
-      const envs: Envs = [
+      const envs: ServiceEnvs = [
         {
           name: 'GOOGLE_PLAY_ENABLED',
           value: 'true',
@@ -202,11 +144,24 @@ export class AppToolsModule extends pulumi.ComponentResource {
         containers: [
           {
             image: serviceImage,
-            envs: pulumi.all([envs, appStoreConnectEnvs, googlePlayEnvs]).apply(([envs, appStoreConnectEnvs, googlePlayEnvs]) => {
+            envs: pulumi.all([appStoreConnectEnvs, googlePlayEnvs]).apply(([appStoreConnectEnvs, googlePlayEnvs]) => {
               return [
-                ...envs,
+                ...serviceEnvs,
+                ...this.database.serviceEnvs,
                 ...appStoreConnectEnvs || [],
                 ...googlePlayEnvs || [],
+                {
+                  name: 'LOGGER',
+                  value: 'gcloud',
+                },
+                {
+                  name: 'LOGGER_NAME',
+                  value: 'app-tools',
+                },
+                {
+                  name: 'LOGGER_LEVEL',
+                  value: 'debug',
+                },
               ];
             }),
             volumeMounts: [
@@ -223,7 +178,7 @@ export class AppToolsModule extends pulumi.ComponentResource {
         ],
         maxInstanceRequestConcurrency: concurrency,
         volumes: [
-          { name: 'cloudsql', cloudSqlInstance: { instances: [sqlInstance.connectionName] } },
+          { name: 'cloudsql', cloudSqlInstance: { instances: [this.database.sqlInstance.connectionName] } },
         ],
       },
     }, {
@@ -242,19 +197,7 @@ export class AppToolsModule extends pulumi.ComponentResource {
             {
               image: dbImage,
               envs: [
-                {
-                  name: 'DATABASE_URL',
-                  valueSource: {
-                    secretKeyRef: {
-                      secret: dbUrlSecret.secretId,
-                      version: dbUrlVersion.version,
-                    },
-                  },
-                },
-                {
-                  name: 'ADMIN_AUTH_TENANT_ID',
-                  value: authTenantId,
-                },
+                ...this.database.jobEnvs,
               ],
               volumeMounts: [
                 { name: 'cloudsql', mountPath: '/cloudsql' },
@@ -262,7 +205,7 @@ export class AppToolsModule extends pulumi.ComponentResource {
             },
           ],
           volumes: [
-            { name: 'cloudsql', cloudSqlInstance: { instances: [sqlInstance.connectionName] } },
+            { name: 'cloudsql', cloudSqlInstance: { instances: [this.database.sqlInstance.connectionName] } },
           ],
         },
       },
