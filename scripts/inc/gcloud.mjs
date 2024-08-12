@@ -163,19 +163,33 @@ export async function selectGcloudSqlInstance(opts = {}) {
 }
 
 export async function selectGcloudIpAddress(opts = {}) {
-  const addresses = await getGcloudIpAddresses(opts.project, 'addressType=EXTERNAL');
-  if (addresses.length === 0) {
-    throw new Error('No IP addresses found. Please reserve a global external IP address in GCP console and rerun this command.');
-  }
-
-  return select({
-    message: 'Select an IP address:',
-    ...opts,
-    choices: addresses.map((item) => ({
+  const { project, create, ...selectOpts } = opts;
+  const addresses = await getGcloudIpAddresses(project, 'addressType=EXTERNAL');
+  let choice;
+  if (addresses.length > 0) {
+    const choices = addresses.map((item) => ({
       name: `${item.name} (${item.address})`,
       value: item.name,
-    })),
-  });
+    }));
+
+    if (create) {
+      choices.push({ name: 'Create new IP address', value: '__create__' });
+    }
+
+    choice = await select({
+      message: 'Select an IP address:',
+      ...selectOpts,
+      choices: choices,
+    });
+  } else {
+    choice = '__create__';
+  }
+
+  if (choice === '__create__') {
+    return create();
+  }
+
+  return choice;
 }
 
 export async function createServiceAccountKey({ gcpProject, serviceAccount }) {
@@ -187,4 +201,15 @@ export async function createServiceAccountKey({ gcpProject, serviceAccount }) {
   }
   await execa({ stdio: 'inherit' })`gcloud iam service-accounts keys create ${keyFile} --iam-account=${serviceAccount} --project=${gcpProject}`;
   return keyFile;
+}
+
+export async function createGlobalIp(project, addressName, description = '') {
+  await execa({ stdio: 'inherit' })`gcloud compute addresses create ${addressName}
+    --network-tier=PREMIUM
+    --ip-version=IPV4
+    --global
+    --description=${description}
+    --project=${project}`;
+  const { stdout } = await execa`gcloud compute addresses describe ${addressName} --format=json --global --project=${project}`;
+  return JSON.parse(stdout);
 }

@@ -9,12 +9,13 @@ import { handleError } from './inc/common.mjs';
 import {
   checkGCloudCli,
   checkGcloudServices,
+  createGlobalIp,
   gcloudAuth,
-  getGcpDefaultProject,
-  getGcpDefaultRegion,
-  getGcloudSqlInstances,
   getGcloudIpAddresses,
   getGcloudProjectNumber,
+  getGcloudSqlInstances,
+  getGcpDefaultProject,
+  getGcpDefaultRegion,
   selectGcloudProject,
   selectGcloudRegion,
   setGcloudServiceRoles,
@@ -164,19 +165,14 @@ async function maybeReserveIpAddress() {
   }
 
   const addressName = 'admin-ip';
+  const description = 'Admin IP address';
 
   echo.log(`Reserving IP address [${addressName}]...`);
-  await execa({ stdio: 'inherit' })`gcloud compute addresses create ${addressName}
-    --network-tier=PREMIUM
-    --ip-version=IPV4
-    --global
-    --description=${'Admin IP address'}
-    --project=${project}`;
-  const { stdout: ipAddress } = await execa`gcloud compute addresses describe ${addressName} --format=${'value(address)'} --global --project=${project}`;
+  const ip = await createGlobalIp(project, addressName, description);
 
   echo.success(`IP address [${addressName}] reserved.`);
   echo.info('Please, use the following IP address as A record in your DNS records:');
-  echo.infoBox(ipAddress);
+  echo.infoBox(ip.address);
 }
 
 async function requestAccessInfo() {

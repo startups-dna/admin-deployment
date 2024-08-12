@@ -4,6 +4,7 @@ import getValue from 'get-value';
 import setValue from 'set-value';
 import { echo } from './echo.mjs';
 import {
+  createGlobalIp,
   getGcpDefaultProject,
   getGcpDefaultRegion,
   selectGcloudApiKey,
@@ -74,11 +75,17 @@ export async function initStackConfig() {
   await configurator.prompt(
     `${PULUMI_PROJECT}:ipName`,
     async (currentValue) => {
+      const project = configurator.get('gcp:project');
       return selectGcloudIpAddress({
-        project: configurator.get('gcp:project'),
-        message: 'Select GCP IP address for admin services:',
+        project: project,
+        message: 'Select GCP IP address for admin domain:',
         default: currentValue,
-        validate: (value) => !!value || 'IP address name is required',
+        create: async () => {
+          const addressName = 'admin-ip';
+          echo.log(`Creating a new IP address [${addressName}]...`);
+          const ip = await createGlobalIp(project, addressName, 'Admin IP address');
+          return ip.name;
+        },
       });
     },
   );
@@ -178,11 +185,17 @@ async function initAppToolsConfig(configurator) {
   await configurator.prompt(
     'feedbackApi:ipName',
     async (currentValue) => {
+      const project = configurator.get('gcp:project');
       return selectGcloudIpAddress({
-        project: configurator.get('gcp:project'),
+        project: project,
         message: 'Select GCP IP address for Feedback API:',
         default: currentValue,
-        validate: (value) => !!value || 'Value is required',
+        create: async () => {
+          const addressName = 'feedback-api-ip';
+          echo.log(`Creating a new IP address [${addressName}]...`);
+          const ip = await createGlobalIp(project, addressName, 'Feedback API IP address');
+          return ip.name;
+        },
       });
     },
   );
