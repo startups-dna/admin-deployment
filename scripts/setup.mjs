@@ -58,9 +58,9 @@ async function initEnv() {
       symbols: true,
       numbers: true,
     });
-    envContents += `\nPULUMI_CONFIG_PASSPHRASE=${PULUMI_CONFIG_PASSPHRASE}`;
+    envContents += `\nPULUMI_CONFIG_PASSPHRASE="${PULUMI_CONFIG_PASSPHRASE}"`;
     hasChanges = true;
-    echo.log(`Generated new Pulumi passphrase. It will be stored in .env file.`);
+    echo.info(`Generated new Pulumi passphrase. It will be stored in .env file.`);
   }
 
   // write new config if changes were made
