@@ -4,12 +4,18 @@ import { CoreModule } from './components/CoreModule';
 import { CompanyModule } from './components/CompanyModule';
 import { AppToolsModule } from './components/AppToolsModule';
 import { ConfiguratorModule } from './components/ConfiguratorModule';
+import { FeedbackApiModule } from './components/FeedbackApiModule';
 
 const coreModule = new CoreModule();
 const companyModule = new CompanyModule();
 const configuratorModule = new ConfiguratorModule({ companyModule });
+let appToolsModule: AppToolsModule | undefined;
+let feedbackApiModule: FeedbackApiModule | undefined;
 const appToolsConfig = new pulumi.Config('appTools');
-const appToolsModule = appToolsConfig.get('enabled') === 'true' ? new AppToolsModule() : undefined;
+if (appToolsConfig.get('enabled') === 'true') {
+  appToolsModule = new AppToolsModule();
+  feedbackApiModule = new FeedbackApiModule({ database: appToolsModule.database });
+}
 
 // Define service map
 const serviceMap = new Map<string, pulumi.Output<string>>();
@@ -28,15 +34,18 @@ export const url = adminLb.url;
 export const core = {
   serviceName: coreModule.service.name,
 };
-export const company ={
+export const company = {
   serviceName: companyModule.service?.name,
   dbJobName: companyModule.dbJob?.name,
 };
-export const appTools = appToolsModule ? {
-  serviceName: appToolsModule.service?.name,
-  dbJobName: appToolsModule.dbJob?.name,
-} : undefined;
-
 export const configurator = {
   serviceName: configuratorModule.service.name,
 }
+export const appTools = appToolsModule ? {
+  serviceName: appToolsModule.service?.name,
+  dbJobName: appToolsModule.dbJob?.name,
+} : {};
+export const feedbackApi = feedbackApiModule ? {
+  serviceName: feedbackApiModule.service?.name,
+  url: feedbackApiModule.url,
+} : {};

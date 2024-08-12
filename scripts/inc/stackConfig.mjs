@@ -165,6 +165,29 @@ async function initAppToolsConfig(configurator) {
   );
 
   await configurator.prompt(
+    'feedbackApi:domain',
+    async (currentValue) => {
+      return input({
+        message: 'Enter Feedback API domain:',
+        default: currentValue,
+        validate: (value) => !!value || 'Value is required',
+      });
+    },
+  );
+
+  await configurator.prompt(
+    'feedbackApi:ipName',
+    async (currentValue) => {
+      return selectGcloudIpAddress({
+        project: configurator.get('gcp:project'),
+        message: 'Select GCP IP address for Feedback API:',
+        default: currentValue,
+        validate: (value) => !!value || 'Value is required',
+      });
+    },
+  );
+
+  await configurator.prompt(
     'appTools:appStoreAppId',
     async (currentValue) => {
       return input({
