@@ -61,6 +61,10 @@ export class CoreModule extends pulumi.ComponentResource {
           },
         ],
         maxInstanceRequestConcurrency: concurrency,
+        scaling: {
+          minInstanceCount: 1,
+          maxInstanceCount: 1,
+        },
       },
     }, {
       parent: this,

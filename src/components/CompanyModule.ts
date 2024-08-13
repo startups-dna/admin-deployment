@@ -23,7 +23,7 @@ export class CompanyModule extends pulumi.ComponentResource {
     const config = new pulumi.Config('company');
     const sqlInstanceName = config.require('sqlInstance');
     const cpu = config.get('cpu') || '1';
-    const memory = config.get('memory') || '500Mi';
+    const memory = config.get('memory') || '512Mi';
     const concurrency = config.getNumber('concurrency') || 80;
     const serviceImage = config.get('serviceImage') || 'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/company:0.1.0';
     const dbImage = config.get('dbImage') || 'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/company-db:0.1.0';
@@ -98,7 +98,7 @@ export class CompanyModule extends pulumi.ComponentResource {
               { name: 'cloudsql', mountPath: '/cloudsql' },
             ],
             resources: {
-              cpuIdle: true,
+              cpuIdle: false,
               limits: {
                 memory,
                 cpu,
@@ -107,6 +107,10 @@ export class CompanyModule extends pulumi.ComponentResource {
           },
         ],
         maxInstanceRequestConcurrency: concurrency,
+        scaling: {
+          minInstanceCount: 1,
+          maxInstanceCount: 1,
+        },
         volumes: [
           { name: 'cloudsql', cloudSqlInstance: { instances: [this.dbInstance.connectionName] } },
         ],
