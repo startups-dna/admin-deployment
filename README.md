@@ -38,6 +38,8 @@ npm install
 8. Create Consent Screen in Google Cloud: https://console.cloud.google.com/apis/credentials/consent;
    - User Type: External;
    - Application Name: `MyCompany Admin`;
+   - Click **"Publish app"** after configuration.;
+
 
 ## Deployment
 
