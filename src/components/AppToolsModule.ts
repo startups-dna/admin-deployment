@@ -26,8 +26,8 @@ export class AppToolsModule extends pulumi.ComponentResource {
     const cpu = config.get('cpu') || '1';
     const memory = config.get('memory') || '512Mi';
     const concurrency = config.getNumber('concurrency') || 80;
-    const serviceImage = config.get('serviceImage') || 'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/app-tools:0.1.0';
-    const dbImage = config.get('dbImage') || 'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/app-tools-db:0.1.0';
+    const serviceImage = config.get('serviceImage') || 'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/app-tools:0.1.1';
+    const dbImage = config.get('dbImage') || 'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/app-tools-db:0.1.1';
     const appStoreAppId = config.get('appStoreAppId');
     type AppStoreConnectConfig = {
       enabled: boolean;
@@ -42,6 +42,13 @@ export class AppToolsModule extends pulumi.ComponentResource {
       serviceKeyFile: string;
     };
     const googlePlay = config.getSecretObject<GooglePlayConfig>('googlePlay');
+
+    new gcp.projects.Service('androidpublisher-api', {
+      service: 'androidpublisher.googleapis.com',
+      disableOnDestroy: false,
+    }, {
+      parent: this,
+    });
 
     this.database = new DatabaseResources(PREFIX, {
       instanceId: sqlInstanceName,

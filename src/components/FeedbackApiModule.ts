@@ -23,7 +23,7 @@ export class FeedbackApiModule extends pulumi.ComponentResource {
 
     // get configuration
     const config = new pulumi.Config('feedbackApi');
-    const serviceImage = config.get('serviceImage') || 'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/feedback-api:0.1.0';
+    const serviceImage = config.get('serviceImage') || 'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/feedback-api:0.1.1';
     const domain = config.require('domain');
     const ipName = config.require('ipName');
 
