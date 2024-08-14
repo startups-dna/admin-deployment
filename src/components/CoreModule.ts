@@ -19,7 +19,7 @@ export class CoreModule extends pulumi.ComponentResource {
     const cpu = config.get('cpu') || '1';
     const memory = config.get('memory') || '300Mi';
     const concurrency = config.getNumber('concurrency') || 80;
-    const image = config.get('serviceImage') || 'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/core:0.1.0';
+    const image = config.get('serviceImage') || 'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/core:0.2.0';
 
     // Define resources
     const envs: gcp.types.input.cloudrunv2.ServiceTemplateContainerEnv[] = [
@@ -28,20 +28,21 @@ export class CoreModule extends pulumi.ComponentResource {
         value: globalConfig.companyName,
       },
       {
-        name: 'FIREBASE_PROJECT_ID',
-        value: firebaseConfig.projectId || globalConfig.project,
-      },
-      {
         name: 'FIREBASE_API_KEY',
         value: firebaseConfig.apiKey,
       },
       {
+        name: 'ADMIN_AUTH_PROJECT_ID',
+        value: globalConfig.project,
+      },
+    ];
+
+    if (authTenantId) {
+      envs.push({
         name: 'ADMIN_AUTH_TENANT_ID',
         value: authTenantId,
-      },
-    ]
-      // leave only envs with values
-      .filter((env) => env.value);
+      });
+    }
 
     // Create a Cloud Run service
     this.service = new gcp.cloudrunv2.Service(`${PREFIX}-service`, {
