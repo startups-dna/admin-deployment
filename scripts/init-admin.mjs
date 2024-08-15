@@ -1,7 +1,7 @@
 import { configDotenv } from 'dotenv';
 import { execa } from 'execa';
 import chalk from 'chalk';
-import { input } from '@inquirer/prompts';
+import { confirm, input } from '@inquirer/prompts';
 import { echo } from './inc/echo.mjs';
 import { handleError } from './inc/common.mjs';
 import { checkGCloudCli, gcloudAuth } from './inc/gcloud.mjs';
@@ -45,23 +45,42 @@ async function main() {
   echo.log('Obtaining GCP ID token...');
   const { stdout: gcpIdToken } = await execa`gcloud auth print-identity-token`;
 
-  const res = await fetch(`${configuratorUrl}/api/init-admin`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${gcpIdToken}`,
-    },
-    body: JSON.stringify({ email }),
-  })
-    .then((res) => {
-      if (!res.ok) {
-        throw new Error(res.statusText);
-      }
-      return res.json();
-    })
+  const api = new ConfiguratorApi(configuratorUrl, gcpIdToken);
 
+  const adminUser = await api.request('POST', 'init-admin', { email });
   echo.success('Admin user initialized');
-  console.log(chalk.dim(JSON.stringify(res, null, 2)));
+  console.log(chalk.dim(JSON.stringify(adminUser, null, 2)));
+
+  if (!await confirm({ message: 'Would you like to generate a password reset link?' })) {
+    return;
+  }
+
+  const passwordReset = await api.request('POST', 'password-reset', { email });
+  echo.log('Password reset link:', passwordReset.link);
+}
+
+class ConfiguratorApi {
+  constructor(configuratorUrl, token) {
+    this.configuratorUrl = configuratorUrl;
+    this.token = token;
+  }
+
+  async request(method, endpoint, body) {
+    return fetch(`${this.configuratorUrl}/api/${endpoint}`, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.token}`,
+      },
+      body: undefined !== body && JSON.stringify(body),
+    })
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`Request failed with status ${res.status}: ` + res.statusText);
+        }
+        return res.json();
+      });
+  }
 }
 
 main().catch(handleError);
