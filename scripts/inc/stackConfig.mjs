@@ -10,7 +10,7 @@ import {
   selectGcloudApiKey,
   selectGcloudIpAddress,
   selectGcloudProject,
-  selectGcloudSqlInstance
+  selectGcloudSqlInstance,
 } from './gcloud.mjs';
 import { PULUMI_PROJECT } from './constants.mjs';
 import { getPulumiStackConfig, pulumiConfigSet } from './pulumi.mjs';
@@ -28,7 +28,10 @@ export async function initStackConfig() {
 
   echo.log('Current stack configuration:');
   console.log('- GCP project:', chalk.bold(configurator.get('gcp:project')));
-  console.log('- GCP default region:', chalk.bold(configurator.get('gcp:region')));
+  console.log(
+    '- GCP default region:',
+    chalk.bold(configurator.get('gcp:region')),
+  );
 
   if (!configurator.get('gcp:project')) {
     const gcpProject = await selectGcloudProject({
@@ -39,16 +42,13 @@ export async function initStackConfig() {
     configurator.set('gcp:project', gcpProject);
   }
 
-  await configurator.prompt(
-    'gcp:region',
-    async (currentValue) => {
-      return input({
-        message: 'Enter GCP default region:',
-        default: currentValue || getGcpDefaultRegion(),
-        validate: (value) => !!value || 'Region is required',
-      });
-    },
-  );
+  await configurator.prompt('gcp:region', async (currentValue) => {
+    return input({
+      message: 'Enter GCP default region:',
+      default: currentValue || getGcpDefaultRegion(),
+      validate: (value) => !!value || 'Region is required',
+    });
+  });
 
   await configurator.prompt(
     `${PULUMI_PROJECT}:companyName`,
@@ -58,7 +58,7 @@ export async function initStackConfig() {
         default: currentValue,
         validate: (value) => !!value || 'Company name is required',
       });
-    }
+    },
   );
 
   await configurator.prompt(
@@ -83,7 +83,11 @@ export async function initStackConfig() {
         create: async () => {
           const addressName = 'admin-ip';
           echo.log(`Creating a new IP address [${addressName}]...`);
-          const ip = await createGlobalIp(project, addressName, 'Admin IP address');
+          const ip = await createGlobalIp(
+            project,
+            addressName,
+            'Admin IP address',
+          );
           return ip.name;
         },
       });
@@ -104,39 +108,30 @@ export async function initStackConfig() {
   // });
   // await $`pulumi config set firebase:credentials ${firebaseCredentials}`;
 
-  await configurator.prompt(
-    'auth:tenantId',
-    async (currentValue) => {
-      return input({
-        message: 'Enter GCP Identity Platform tenant ID (optional):',
-        default: currentValue,
-      });
-    },
-  );
+  await configurator.prompt('auth:tenantId', async (currentValue) => {
+    return input({
+      message: 'Enter GCP Identity Platform tenant ID (optional):',
+      default: currentValue,
+    });
+  });
 
-  await configurator.prompt(
-    'firebase:apiKey',
-    async (currentValue) => {
-      return selectGcloudApiKey({
-        gcpProject: configurator.get('gcp:project'),
-        message: 'Select a GCP API key for Firebase Client:',
-        default: currentValue,
-        validate: (value) => !!value || 'API key is required',
-      });
-    },
-  );
+  await configurator.prompt('firebase:apiKey', async (currentValue) => {
+    return selectGcloudApiKey({
+      gcpProject: configurator.get('gcp:project'),
+      message: 'Select a GCP API key for Firebase Client:',
+      default: currentValue,
+      validate: (value) => !!value || 'API key is required',
+    });
+  });
 
-  await configurator.prompt(
-    'company:sqlInstance',
-    async (currentValue) => {
-      return selectGcloudSqlInstance({
-        gcpProject: configurator.get('gcp:project'),
-        message: 'Select a Cloud SQL instance for Company service:',
-        default: currentValue,
-        validate: (value) => !!value || 'Value is required',
-      });
-    },
-  );
+  await configurator.prompt('company:sqlInstance', async (currentValue) => {
+    return selectGcloudSqlInstance({
+      gcpProject: configurator.get('gcp:project'),
+      message: 'Select a Cloud SQL instance for Company service:',
+      default: currentValue,
+      validate: (value) => !!value || 'Value is required',
+    });
+  });
 
   await initAppToolsConfig(configurator);
 
@@ -144,71 +139,60 @@ export async function initStackConfig() {
 }
 
 async function initAppToolsConfig(configurator) {
-  await configurator.prompt(
-    'appTools:enabled',
-    async (currentValue) => {
-      const enabled = await confirm({
-        message: 'Enable App Tools Service?',
-        default: currentValue === 'true',
-      });
-      return enabled ? 'true' : 'false';
-    },
-  );
+  await configurator.prompt('appTools:enabled', async (currentValue) => {
+    const enabled = await confirm({
+      message: 'Enable App Tools Service?',
+      default: currentValue === 'true',
+    });
+    return enabled ? 'true' : 'false';
+  });
 
   if (configurator.get('appTools:enabled') !== 'true') {
     return;
   }
 
-  await configurator.prompt(
-    'appTools:sqlInstance',
-    async (currentValue) => {
-      return selectGcloudSqlInstance({
-        gcpProject: configurator.get('gcp:project'),
-        message: 'Select a Cloud SQL instance for App Tools service:',
-        default: currentValue,
-        validate: (value) => !!value || 'Value is required',
-      });
-    },
-  );
+  await configurator.prompt('appTools:sqlInstance', async (currentValue) => {
+    return selectGcloudSqlInstance({
+      gcpProject: configurator.get('gcp:project'),
+      message: 'Select a Cloud SQL instance for App Tools service:',
+      default: currentValue,
+      validate: (value) => !!value || 'Value is required',
+    });
+  });
 
-  await configurator.prompt(
-    'feedbackApi:domain',
-    async (currentValue) => {
-      return input({
-        message: 'Enter Feedback API domain:',
-        default: currentValue,
-        validate: (value) => !!value || 'Value is required',
-      });
-    },
-  );
+  await configurator.prompt('feedbackApi:domain', async (currentValue) => {
+    return input({
+      message: 'Enter Feedback API domain:',
+      default: currentValue,
+      validate: (value) => !!value || 'Value is required',
+    });
+  });
 
-  await configurator.prompt(
-    'feedbackApi:ipName',
-    async (currentValue) => {
-      const project = configurator.get('gcp:project');
-      return selectGcloudIpAddress({
-        project: project,
-        message: 'Select GCP IP address for Feedback API:',
-        default: currentValue,
-        create: async () => {
-          const addressName = 'feedback-api-ip';
-          echo.log(`Creating a new IP address [${addressName}]...`);
-          const ip = await createGlobalIp(project, addressName, 'Feedback API IP address');
-          return ip.name;
-        },
-      });
-    },
-  );
+  await configurator.prompt('feedbackApi:ipName', async (currentValue) => {
+    const project = configurator.get('gcp:project');
+    return selectGcloudIpAddress({
+      project: project,
+      message: 'Select GCP IP address for Feedback API:',
+      default: currentValue,
+      create: async () => {
+        const addressName = 'feedback-api-ip';
+        echo.log(`Creating a new IP address [${addressName}]...`);
+        const ip = await createGlobalIp(
+          project,
+          addressName,
+          'Feedback API IP address',
+        );
+        return ip.name;
+      },
+    });
+  });
 
-  await configurator.prompt(
-    'appTools:appStoreAppId',
-    async (currentValue) => {
-      return input({
-        message: 'Enter App Store App ID:',
-        default: currentValue,
-      });
-    },
-  );
+  await configurator.prompt('appTools:appStoreAppId', async (currentValue) => {
+    return input({
+      message: 'Enter App Store App ID:',
+      default: currentValue,
+    });
+  });
 
   await configurator.prompt(
     'appTools:appStoreConnect.enabled',

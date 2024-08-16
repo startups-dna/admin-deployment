@@ -19,7 +19,9 @@ export class CoreModule extends pulumi.ComponentResource {
     const cpu = config.get('cpu') || '1';
     const memory = config.get('memory') || '300Mi';
     const concurrency = config.getNumber('concurrency') || 80;
-    const image = config.get('serviceImage') || 'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/core:0.2.0';
+    const image =
+      config.get('serviceImage') ||
+      'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/core:0.2.0';
 
     // Define resources
     const envs: gcp.types.input.cloudrunv2.ServiceTemplateContainerEnv[] = [
@@ -45,61 +47,77 @@ export class CoreModule extends pulumi.ComponentResource {
     }
 
     // Create a Cloud Run service
-    this.service = new gcp.cloudrunv2.Service(`${PREFIX}-service`, {
-      location: globalConfig.location,
-      template: {
-        containers: [
-          {
-            image,
-            resources: {
-              cpuIdle: true,
-              limits: {
-                memory,
-                cpu,
+    this.service = new gcp.cloudrunv2.Service(
+      `${PREFIX}-service`,
+      {
+        location: globalConfig.location,
+        template: {
+          containers: [
+            {
+              image,
+              resources: {
+                cpuIdle: true,
+                limits: {
+                  memory,
+                  cpu,
+                },
               },
+              envs,
             },
-            envs,
+          ],
+          maxInstanceRequestConcurrency: concurrency,
+          scaling: {
+            minInstanceCount: 1,
+            maxInstanceCount: 1,
           },
-        ],
-        maxInstanceRequestConcurrency: concurrency,
-        scaling: {
-          minInstanceCount: 1,
-          maxInstanceCount: 1,
         },
       },
-    }, {
-      parent: this,
-    });
+      {
+        parent: this,
+      },
+    );
 
     // Create an IAM member to allow the service to be publicly accessible.
-    new gcp.cloudrun.IamMember(`${PREFIX}-service-invoker`, {
-      location: globalConfig.location,
-      service: this.service.name,
-      role: 'roles/run.invoker',
-      member: 'allUsers',
-    }, {
-      parent: this,
-    });
-
-    this.serviceNeg = new gcp.compute.RegionNetworkEndpointGroup(`${PREFIX}-neg`, {
-      region: globalConfig.location,
-      cloudRun: {
+    new gcp.cloudrun.IamMember(
+      `${PREFIX}-service-invoker`,
+      {
+        location: globalConfig.location,
         service: this.service.name,
+        role: 'roles/run.invoker',
+        member: 'allUsers',
       },
-    }, {
-      parent: this,
-    });
+      {
+        parent: this,
+      },
+    );
 
-    this.serviceBackend = new gcp.compute.BackendService(`${PREFIX}-service-backend`, {
-      protocol: 'HTTPS',
-      loadBalancingScheme: 'EXTERNAL_MANAGED',
-      backends: [
-        {
-          group: this.serviceNeg.id,
+    this.serviceNeg = new gcp.compute.RegionNetworkEndpointGroup(
+      `${PREFIX}-neg`,
+      {
+        region: globalConfig.location,
+        cloudRun: {
+          service: this.service.name,
         },
-      ],
-    }, {
-      parent: this,
-    });
+      },
+      {
+        parent: this,
+      },
+    );
+
+    this.serviceBackend = new gcp.compute.BackendService(
+      `${PREFIX}-service-backend`,
+      {
+        protocol: 'HTTPS',
+        loadBalancingScheme: 'EXTERNAL_MANAGED',
+        backends: [
+          {
+            group: this.serviceNeg.id,
+          },
+        ],
+      },
+      {
+        parent: this,
+      },
+    );
   }
 }

@@ -26,16 +26,21 @@ export class AppToolsModule extends pulumi.ComponentResource {
     const cpu = config.get('cpu') || '1';
     const memory = config.get('memory') || '512Mi';
     const concurrency = config.getNumber('concurrency') || 80;
-    const serviceImage = config.get('serviceImage') || 'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/app-tools:0.1.1';
-    const dbImage = config.get('dbImage') || 'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/app-tools-db:0.1.1';
+    const serviceImage =
+      config.get('serviceImage') ||
+      'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/app-tools:0.1.1';
+    const dbImage =
+      config.get('dbImage') ||
+      'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/app-tools-db:0.1.1';
     const appStoreAppId = config.get('appStoreAppId');
     type AppStoreConnectConfig = {
       enabled: boolean;
       keyId: string;
-      issuerId: string
+      issuerId: string;
       privateKeyFile: string;
     };
-    const appStoreConnect = config.getSecretObject<AppStoreConnectConfig>('appStoreConnect');
+    const appStoreConnect =
+      config.getSecretObject<AppStoreConnectConfig>('appStoreConnect');
     const googlePlayPackageName = config.get('googlePlayPackageName');
     type GooglePlayConfig = {
       enabled: boolean;
@@ -43,20 +48,28 @@ export class AppToolsModule extends pulumi.ComponentResource {
     };
     const googlePlay = config.getSecretObject<GooglePlayConfig>('googlePlay');
 
-    new gcp.projects.Service('androidpublisher-api', {
-      service: 'androidpublisher.googleapis.com',
-      disableOnDestroy: false,
-    }, {
-      parent: this,
-    });
+    new gcp.projects.Service(
+      'androidpublisher-api',
+      {
+        service: 'androidpublisher.googleapis.com',
+        disableOnDestroy: false,
+      },
+      {
+        parent: this,
+      },
+    );
 
-    this.database = new DatabaseResources(PREFIX, {
-      instanceId: sqlInstanceName,
-      dbName: DB_NAME,
-      dbUser: DB_USER,
-    }, {
-      parent: this,
-    });
+    this.database = new DatabaseResources(
+      PREFIX,
+      {
+        instanceId: sqlInstanceName,
+        dbName: DB_NAME,
+        dbUser: DB_USER,
+      },
+      {
+        parent: this,
+      },
+    );
 
     const serviceEnvs: ServiceEnvs = [];
 
@@ -81,39 +94,48 @@ export class AppToolsModule extends pulumi.ComponentResource {
       });
     }
 
-    const appStoreConnectEnvs = appStoreConnect?.apply<ServiceEnvs>((config) => {
-      if (!config.enabled) {
-        return [];
-      }
-      if (!appStoreAppId || !config.keyId || !config.issuerId || !config.privateKeyFile) {
-        throw new pulumi.ResourceError(
-          'appStoreAppId, keyId, issuerId, privateKeyFile are required for AppStore Connect',
-          this,
-          true,
-        );
-      }
-      const appStoreConnectPrivateKey = fs.readFileSync(config.privateKeyFile).toString();
-      const envs: ServiceEnvs = [
-        {
-          name: 'APP_STORE_ENABLED',
-          value: 'true',
-        },
-        {
-          name: 'APP_STORE_CONNECT_KEY_ID',
-          value: appStoreConnect.keyId,
-        },
-        {
-          name: 'APP_STORE_CONNECT_ISSUER_ID',
-          value: appStoreConnect.issuerId,
-        },
-        {
-          name: 'APP_STORE_CONNECT_KEY',
-          value: appStoreConnectPrivateKey,
-        },
-      ];
+    const appStoreConnectEnvs = appStoreConnect?.apply<ServiceEnvs>(
+      (config) => {
+        if (!config.enabled) {
+          return [];
+        }
+        if (
+          !appStoreAppId ||
+          !config.keyId ||
+          !config.issuerId ||
+          !config.privateKeyFile
+        ) {
+          throw new pulumi.ResourceError(
+            'appStoreAppId, keyId, issuerId, privateKeyFile are required for AppStore Connect',
+            this,
+            true,
+          );
+        }
+        const appStoreConnectPrivateKey = fs
+          .readFileSync(config.privateKeyFile)
+          .toString();
+        const envs: ServiceEnvs = [
+          {
+            name: 'APP_STORE_ENABLED',
+            value: 'true',
+          },
+          {
+            name: 'APP_STORE_CONNECT_KEY_ID',
+            value: appStoreConnect.keyId,
+          },
+          {
+            name: 'APP_STORE_CONNECT_ISSUER_ID',
+            value: appStoreConnect.issuerId,
+          },
+          {
+            name: 'APP_STORE_CONNECT_KEY',
+            value: appStoreConnectPrivateKey,
+          },
+        ];
 
-      return envs;
-    });
+        return envs;
+      },
+    );
 
     const googlePlayEnvs = googlePlay?.apply<ServiceEnvs>((config) => {
       if (!config.enabled) {
@@ -126,7 +148,9 @@ export class AppToolsModule extends pulumi.ComponentResource {
           true,
         );
       }
-      const googlePlayServiceKey = JSON.parse(fs.readFileSync(config.serviceKeyFile).toString());
+      const googlePlayServiceKey = JSON.parse(
+        fs.readFileSync(config.serviceKeyFile).toString(),
+      );
       const envs: ServiceEnvs = [
         {
           name: 'GOOGLE_PLAY_ENABLED',
@@ -145,113 +169,139 @@ export class AppToolsModule extends pulumi.ComponentResource {
     });
 
     // Create a Cloud Run service definition.
-    this.service = new gcp.cloudrunv2.Service(`${PREFIX}-service`, {
-      location: globalConfig.location,
-      template: {
-        containers: [
-          {
-            image: serviceImage,
-            envs: pulumi.all([appStoreConnectEnvs, googlePlayEnvs]).apply(([appStoreConnectEnvs, googlePlayEnvs]) => {
-              return [
-                ...serviceEnvs,
-                ...this.database.serviceEnvs,
-                ...appStoreConnectEnvs || [],
-                ...googlePlayEnvs || [],
-                {
-                  name: 'LOGGER',
-                  value: 'gcloud',
-                },
-                {
-                  name: 'LOGGER_NAME',
-                  value: 'app-tools',
-                },
-                {
-                  name: 'LOGGER_LEVEL',
-                  value: 'debug',
-                },
-              ];
-            }),
-            volumeMounts: [
-              { name: 'cloudsql', mountPath: '/cloudsql' },
-            ],
-            resources: {
-              cpuIdle: false,
-              limits: {
-                memory,
-                cpu,
-              },
-            },
-          },
-        ],
-        maxInstanceRequestConcurrency: concurrency,
-        scaling: {
-          minInstanceCount: 1,
-          maxInstanceCount: 1,
-        },
-        volumes: [
-          { name: 'cloudsql', cloudSqlInstance: { instances: [this.database.sqlInstance.connectionName] } },
-        ],
-      },
-    }, {
-      parent: this,
-    });
-
-    // Create Cloud Run Job to run migrations
-    this.dbJob = new gcp.cloudrunv2.Job(`${PREFIX}-db-job`, {
-      location: globalConfig.location,
-      template: {
-        parallelism: 1,
-        taskCount: 1,
+    this.service = new gcp.cloudrunv2.Service(
+      `${PREFIX}-service`,
+      {
+        location: globalConfig.location,
         template: {
-          maxRetries: 1,
           containers: [
             {
-              image: dbImage,
-              envs: [
-                ...this.database.jobEnvs,
-              ],
-              volumeMounts: [
-                { name: 'cloudsql', mountPath: '/cloudsql' },
-              ],
+              image: serviceImage,
+              envs: pulumi
+                .all([appStoreConnectEnvs, googlePlayEnvs])
+                .apply(([appStoreConnectEnvs, googlePlayEnvs]) => {
+                  return [
+                    ...serviceEnvs,
+                    ...this.database.serviceEnvs,
+                    ...(appStoreConnectEnvs || []),
+                    ...(googlePlayEnvs || []),
+                    {
+                      name: 'LOGGER',
+                      value: 'gcloud',
+                    },
+                    {
+                      name: 'LOGGER_NAME',
+                      value: 'app-tools',
+                    },
+                    {
+                      name: 'LOGGER_LEVEL',
+                      value: 'debug',
+                    },
+                  ];
+                }),
+              volumeMounts: [{ name: 'cloudsql', mountPath: '/cloudsql' }],
+              resources: {
+                cpuIdle: false,
+                limits: {
+                  memory,
+                  cpu,
+                },
+              },
             },
           ],
+          maxInstanceRequestConcurrency: concurrency,
+          scaling: {
+            minInstanceCount: 1,
+            maxInstanceCount: 1,
+          },
           volumes: [
-            { name: 'cloudsql', cloudSqlInstance: { instances: [this.database.sqlInstance.connectionName] } },
+            {
+              name: 'cloudsql',
+              cloudSqlInstance: {
+                instances: [this.database.sqlInstance.connectionName],
+              },
+            },
           ],
         },
       },
-    }, {
-      parent: this,
-    });
+      {
+        parent: this,
+      },
+    );
+
+    // Create Cloud Run Job to run migrations
+    this.dbJob = new gcp.cloudrunv2.Job(
+      `${PREFIX}-db-job`,
+      {
+        location: globalConfig.location,
+        template: {
+          parallelism: 1,
+          taskCount: 1,
+          template: {
+            maxRetries: 1,
+            containers: [
+              {
+                image: dbImage,
+                envs: [...this.database.jobEnvs],
+                volumeMounts: [{ name: 'cloudsql', mountPath: '/cloudsql' }],
+              },
+            ],
+            volumes: [
+              {
+                name: 'cloudsql',
+                cloudSqlInstance: {
+                  instances: [this.database.sqlInstance.connectionName],
+                },
+              },
+            ],
+          },
+        },
+      },
+      {
+        parent: this,
+      },
+    );
 
     // Create an IAM member to allow the service to be publicly accessible.
-    new gcp.cloudrun.IamMember(`${PREFIX}-service-invoker`, {
-      service: this.service.name,
-      role: 'roles/run.invoker',
-      member: 'allUsers',
-    }, {
-      parent: this,
-    });
-
-    const serviceNEG = new gcp.compute.RegionNetworkEndpointGroup(`${PREFIX}-neg`, {
-      region: globalConfig.location,
-      cloudRun: {
+    new gcp.cloudrun.IamMember(
+      `${PREFIX}-service-invoker`,
+      {
         service: this.service.name,
+        role: 'roles/run.invoker',
+        member: 'allUsers',
       },
-    }, {
-      parent: this,
-    });
+      {
+        parent: this,
+      },
+    );
 
-    this.serviceBackend = new gcp.compute.BackendService(`${PREFIX}-service-backend`, {
-      protocol: 'HTTPS',
-      loadBalancingScheme: 'EXTERNAL_MANAGED',
-      backends: [
-        {
-          group: serviceNEG.id,
+    const serviceNEG = new gcp.compute.RegionNetworkEndpointGroup(
+      `${PREFIX}-neg`,
+      {
+        region: globalConfig.location,
+        cloudRun: {
+          service: this.service.name,
         },
-      ],
-    }, {
-      parent: this,
-    });
+      },
+      {
+        parent: this,
+      },
+    );
+
+    this.serviceBackend = new gcp.compute.BackendService(
+      `${PREFIX}-service-backend`,
+      {
+        protocol: 'HTTPS',
+        loadBalancingScheme: 'EXTERNAL_MANAGED',
+        backends: [
+          {
+            group: serviceNEG.id,
+          },
+        ],
+      },
+      {
+        parent: this,
+      },
+    );
   }
 }

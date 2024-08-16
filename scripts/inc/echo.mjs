@@ -9,8 +9,12 @@ export const echo = {
   warn: (...msg) => console.log(chalk.yellow(figures.warning, ...msg)),
   error: (...msg) => console.log(chalk.red(figures.cross, ...msg)),
   box: (msg, options = { padding: 1 }) => console.log(boxen(msg, options)),
-  infoBox: (msg, options = { padding: 1 }) => console.log(boxen(msg, { ...options, borderColor: 'cyan' })),
-  successBox: (msg, options = { padding: 1 }) => console.log(boxen(msg, { ...options, borderColor: 'green' })),
-  warnBox: (msg, options = { padding: 1 }) => console.log(boxen(msg, { ...options, borderColor: 'yellow' })),
-  errorBox: (msg, options = { padding: 1 }) => console.log(boxen(msg, { ...options, borderColor: 'red' })),
+  infoBox: (msg, options = { padding: 1 }) =>
+    console.log(boxen(msg, { ...options, borderColor: 'cyan' })),
+  successBox: (msg, options = { padding: 1 }) =>
+    console.log(boxen(msg, { ...options, borderColor: 'green' })),
+  warnBox: (msg, options = { padding: 1 }) =>
+    console.log(boxen(msg, { ...options, borderColor: 'yellow' })),
+  errorBox: (msg, options = { padding: 1 }) =>
+    console.log(boxen(msg, { ...options, borderColor: 'red' })),
 };

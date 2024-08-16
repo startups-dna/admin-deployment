@@ -12,7 +12,10 @@ export async function checkPulumiCli() {
     echo.success('pulumi CLI is installed');
   } catch (e) {
     echo.error('pulumi CLI is not installed');
-    echo.info(`Please install pulumi:`, chalk.white.underline('https://www.pulumi.com/docs/install/'));
+    echo.info(
+      `Please install pulumi:`,
+      chalk.white.underline('https://www.pulumi.com/docs/install/'),
+    );
     process.exit(1);
   }
 }
@@ -24,7 +27,10 @@ export async function pulumiLogin() {
 }
 
 export async function checkPulumiStack() {
-  const stacks = await $`pulumi stack ls --project ${PULUMI_PROJECT} --json`.then(({ stdout }) => JSON.parse(stdout));
+  const stacks =
+    await $`pulumi stack ls --project ${PULUMI_PROJECT} --json`.then(
+      ({ stdout }) => JSON.parse(stdout),
+    );
   if (stacks.length === 0) {
     await initStack(DEFAULT_STACK);
   } else if (stacks.length === 1) {
@@ -48,17 +54,20 @@ export async function getPulumiStackConfig() {
 }
 
 export async function pulumiConfigSet(key, value, isSecret = false) {
-  return execa`pulumi config set ${isSecret ? '--secret' : '--plaintext'} --path ${key} ${String(value)}`;
+  return execa`pulumi config set ${
+    isSecret ? '--secret' : '--plaintext'
+  } --path ${key} ${String(value)}`;
 }
 
 export async function getPulumiStackOutput() {
-  return await $`pulumi stack output --json`
-    .then(({ stdout }) => JSON.parse(stdout));
+  return await $`pulumi stack output --json`.then(({ stdout }) =>
+    JSON.parse(stdout),
+  );
 }
 
 function parsePulumiConfig(config) {
   const res = {};
-  Object.keys(config).forEach(key => {
+  Object.keys(config).forEach((key) => {
     const value = config[key];
     if (typeof value !== 'object') {
       return;

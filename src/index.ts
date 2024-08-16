@@ -14,7 +14,9 @@ let feedbackApiModule: FeedbackApiModule | undefined;
 const appToolsConfig = new pulumi.Config('appTools');
 if (appToolsConfig.get('enabled') === 'true') {
   appToolsModule = new AppToolsModule();
-  feedbackApiModule = new FeedbackApiModule({ database: appToolsModule.database });
+  feedbackApiModule = new FeedbackApiModule({
+    database: appToolsModule.database,
+  });
 }
 
 // Define service map
@@ -40,12 +42,16 @@ export const company = {
 };
 export const configurator = {
   serviceName: configuratorModule.service.name,
-}
-export const appTools = appToolsModule ? {
-  serviceName: appToolsModule.service?.name,
-  dbJobName: appToolsModule.dbJob?.name,
-} : {};
-export const feedbackApi = feedbackApiModule ? {
-  serviceName: feedbackApiModule.service?.name,
-  url: feedbackApiModule.url,
-} : {};
+};
+export const appTools = appToolsModule
+  ? {
+      serviceName: appToolsModule.service?.name,
+      dbJobName: appToolsModule.dbJob?.name,
+    }
+  : {};
+export const feedbackApi = feedbackApiModule
+  ? {
+      serviceName: feedbackApiModule.service?.name,
+      url: feedbackApiModule.url,
+    }
+  : {};

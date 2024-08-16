@@ -29,7 +29,7 @@ async function main() {
   await initEnv();
   await checkGcloudServices();
   await initEnv2();
-  await setGcloudServiceRoles()
+  await setGcloudServiceRoles();
   await checkStateBucket();
   await maybeCreateSqlInstance();
   await maybeReserveIpAddress();
@@ -61,7 +61,9 @@ async function initEnv() {
     });
     envContents += `\nPULUMI_CONFIG_PASSPHRASE="${PULUMI_CONFIG_PASSPHRASE}"`;
     hasChanges = true;
-    echo.info(`Generated new Pulumi passphrase. It will be stored in .env file.`);
+    echo.info(
+      `Generated new Pulumi passphrase. It will be stored in .env file.`,
+    );
   }
 
   // write new config if changes were made
@@ -112,7 +114,10 @@ async function maybeCreateSqlInstance() {
   const region = getGcpDefaultRegion();
 
   echo.log(`Checking for existing Postgres SQL instances...`);
-  const instances = await getGcloudSqlInstances(project, 'databaseVersion:POSTGRES_*');
+  const instances = await getGcloudSqlInstances(
+    project,
+    'databaseVersion:POSTGRES_*',
+  );
   if (instances.length > 0) {
     echo.success(`Found ${instances.length} Postgres SQL instance(s)`);
     return;
@@ -120,7 +125,9 @@ async function maybeCreateSqlInstance() {
 
   echo.log(`No Postgres SQL instances found in your project [${project}].`);
   const yes = await confirm({
-    message: `Do you want this script to create a new Cloud SQL instance for you ${chalk.grey('(Y)')} or create manually ${chalk.grey('(n)')}?`,
+    message: `Do you want this script to create a new Cloud SQL instance for you ${chalk.grey(
+      '(Y)',
+    )} or create manually ${chalk.grey('(n)')}?`,
   });
 
   if (!yes) {
@@ -157,7 +164,9 @@ async function maybeReserveIpAddress() {
 
   echo.log(`No IP address reservation found in your project [${project}].`);
   const yes = await confirm({
-    message: `Do you want this script to reserve a new IP address for you ${chalk.grey('(Y)')} or create manually ${chalk.grey('(n)')}?`,
+    message: `Do you want this script to reserve a new IP address for you ${chalk.grey(
+      '(Y)',
+    )} or create manually ${chalk.grey('(n)')}?`,
   });
 
   if (!yes) {
@@ -171,15 +180,21 @@ async function maybeReserveIpAddress() {
   const ip = await createGlobalIp(project, addressName, description);
 
   echo.success(`IP address [${addressName}] reserved.`);
-  echo.info('Please, use the following IP address as A record in your DNS records:');
+  echo.info(
+    'Please, use the following IP address as A record in your DNS records:',
+  );
   echo.infoBox(ip.address);
 }
 
 async function requestAccessInfo() {
   const project = getGcpDefaultProject();
   const projectNumber = await getGcloudProjectNumber(project);
-  echo.info('Please share the following service account email to StartupsDNA to grant access to docker image registry:');
-  echo.infoBox(`service-${projectNumber}@serverless-robot-prod.iam.gserviceaccount.com`);
+  echo.info(
+    'Please share the following service account email to StartupsDNA to grant access to docker image registry:',
+  );
+  echo.infoBox(
+    `service-${projectNumber}@serverless-robot-prod.iam.gserviceaccount.com`,
+  );
 }
 
 main().catch(handleError);

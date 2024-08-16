@@ -11,7 +11,10 @@ export async function checkGCloudCli() {
     echo.success('gcloud CLI is installed');
   } catch (e) {
     echo.error('gcloud CLI is not installed.');
-    echo.info(`Please install gcloud:`, chalk.white.underline('https://cloud.google.com/sdk/docs/install'));
+    echo.info(
+      `Please install gcloud:`,
+      chalk.white.underline('https://cloud.google.com/sdk/docs/install'),
+    );
     process.exit(1);
   }
 }
@@ -19,13 +22,13 @@ export async function checkGCloudCli() {
 export async function gcloudAuth() {
   echo.log('Authenticating gcloud...');
   try {
-    const { stdout } = await $`gcloud auth application-default print-access-token`;
+    const { stdout } =
+      await $`gcloud auth application-default print-access-token`;
     if (!stdout) {
       throw new Error('no access token');
     }
     echo.success('gcloud is authenticated');
-  }
-  catch (e) {
+  } catch (e) {
     echo.warn('gcloud authentication is required to proceed');
     await $`gcloud auth application-default login`;
   }
@@ -35,8 +38,10 @@ export async function checkGcloudServices() {
   const gcpProject = getGcpDefaultProject();
 
   echo.log(`Checking enabled GCP services...`);
-  const enabledServices = await execa`gcloud services list --enabled --format=${'value(config.name)'} --project=${gcpProject}`
-    .then(({ stdout }) => stdout.split('\n'));
+  const enabledServices =
+    await execa`gcloud services list --enabled --format=${'value(config.name)'} --project=${gcpProject}`.then(
+      ({ stdout }) => stdout.split('\n'),
+    );
 
   const requiredServices = [
     'compute.googleapis.com',
@@ -45,7 +50,9 @@ export async function checkGcloudServices() {
     'secretmanager.googleapis.com',
   ];
 
-  const missingServices = requiredServices.filter((service) => !enabledServices.includes(service));
+  const missingServices = requiredServices.filter(
+    (service) => !enabledServices.includes(service),
+  );
 
   if (missingServices.length === 0) {
     echo.success('All required GCP services are enabled.');
@@ -68,13 +75,16 @@ export async function setGcloudServiceRoles() {
 }
 
 export async function getGcloudProjectNumber(project) {
-  const { stdout } = await $`gcloud projects describe ${project} --format=${'value(projectNumber)'}`;
+  const { stdout } =
+    await $`gcloud projects describe ${project} --format=${'value(projectNumber)'}`;
   return stdout.trim();
 }
 
 export function getGcpDefaultProject() {
   if (!process.env.GOOGLE_CLOUD_PROJECT) {
-    throw new Error('GOOGLE_CLOUD_PROJECT env variable is not set. Make sure it is set in .env file');
+    throw new Error(
+      'GOOGLE_CLOUD_PROJECT env variable is not set. Make sure it is set in .env file',
+    );
   }
   return process.env.GOOGLE_CLOUD_PROJECT;
 }
@@ -84,15 +94,21 @@ export function getGcpDefaultRegion() {
 }
 
 export function getGcloudSqlInstances(project, filter = '') {
-  return execa`gcloud sql instances list --format=json --project=${project} --filter=${filter}`.then(({ stdout }) => JSON.parse(stdout));
+  return execa`gcloud sql instances list --format=json --project=${project} --filter=${filter}`.then(
+    ({ stdout }) => JSON.parse(stdout),
+  );
 }
 
 export function getGcloudIpAddresses(project, filter = '') {
-  return execa`gcloud compute addresses list --format=json --filter=${filter} --project=${project}`.then(({ stdout }) => JSON.parse(stdout));
+  return execa`gcloud compute addresses list --format=json --filter=${filter} --project=${project}`.then(
+    ({ stdout }) => JSON.parse(stdout),
+  );
 }
 
 export async function selectGcloudProject(opts = {}) {
-  const projects = await $`gcloud projects list --format=json`.then(({ stdout }) => JSON.parse(stdout));
+  const projects = await $`gcloud projects list --format=json`.then(
+    ({ stdout }) => JSON.parse(stdout),
+  );
   return select({
     message: 'Select a GCP project:',
     ...opts,
@@ -104,7 +120,9 @@ export async function selectGcloudProject(opts = {}) {
 }
 
 export async function selectGcloudRegion(opts = {}) {
-  const regions = await $`gcloud compute regions list --project=${opts.gcpProject} --format=${'value(name)'}`.then(({ stdout }) => stdout.split('\n'));
+  const regions = await $`gcloud compute regions list --project=${
+    opts.gcpProject
+  } --format=${'value(name)'}`.then(({ stdout }) => stdout.split('\n'));
   return select({
     message: 'Select a GCP region:',
     ...opts,
@@ -116,7 +134,10 @@ export async function selectGcloudRegion(opts = {}) {
 }
 
 export async function selectGcloudServiceAccount(opts = {}) {
-  const serviceAccounts = await $`gcloud iam service-accounts list --format=json --project=${opts.gcpProject}`.then(({ stdout }) => JSON.parse(stdout));
+  const serviceAccounts =
+    await $`gcloud iam service-accounts list --format=json --project=${opts.gcpProject}`.then(
+      ({ stdout }) => JSON.parse(stdout),
+    );
   return select({
     message: 'Select a GCP service account:',
     ...opts,
@@ -127,9 +148,14 @@ export async function selectGcloudServiceAccount(opts = {}) {
 }
 
 export async function selectGcloudApiKey(opts = {}) {
-  const keys = await $`gcloud services api-keys list --format=json --project=${opts.gcpProject}`.then(({ stdout }) => JSON.parse(stdout));
+  const keys =
+    await $`gcloud services api-keys list --format=json --project=${opts.gcpProject}`.then(
+      ({ stdout }) => JSON.parse(stdout),
+    );
   if (keys.length === 0) {
-    throw new Error('No API keys found. Please create an API key in GCP console and rerun this command.');
+    throw new Error(
+      'No API keys found. Please create an API key in GCP console and rerun this command.',
+    );
   }
 
   const apiKeyId = await select({
@@ -141,15 +167,23 @@ export async function selectGcloudApiKey(opts = {}) {
     })),
   });
 
-  const { keyString } = await $`gcloud services api-keys get-key-string ${apiKeyId} --format=json --project=${opts.gcpProject}`.then(({ stdout }) => JSON.parse(stdout));
+  const { keyString } =
+    await $`gcloud services api-keys get-key-string ${apiKeyId} --format=json --project=${opts.gcpProject}`.then(
+      ({ stdout }) => JSON.parse(stdout),
+    );
 
   return keyString;
 }
 
 export async function selectGcloudSqlInstance(opts = {}) {
-  const instances = await getGcloudSqlInstances(opts.gcpProject, 'databaseVersion:POSTGRES_*');
+  const instances = await getGcloudSqlInstances(
+    opts.gcpProject,
+    'databaseVersion:POSTGRES_*',
+  );
   if (instances.length === 0) {
-    throw new Error('No Cloud SQL instances found. Please create a PostgreSQL instance in GCP console and rerun this command.');
+    throw new Error(
+      'No Cloud SQL instances found. Please create a PostgreSQL instance in GCP console and rerun this command.',
+    );
   }
 
   return select({
@@ -199,17 +233,22 @@ export async function createServiceAccountKey({ gcpProject, serviceAccount }) {
     echo.warn(`Service account key already exists: ${keyFile}`);
     return keyFile;
   }
-  await execa({ stdio: 'inherit' })`gcloud iam service-accounts keys create ${keyFile} --iam-account=${serviceAccount} --project=${gcpProject}`;
+  await execa({
+    stdio: 'inherit',
+  })`gcloud iam service-accounts keys create ${keyFile} --iam-account=${serviceAccount} --project=${gcpProject}`;
   return keyFile;
 }
 
 export async function createGlobalIp(project, addressName, description = '') {
-  await execa({ stdio: 'inherit' })`gcloud compute addresses create ${addressName}
+  await execa({
+    stdio: 'inherit',
+  })`gcloud compute addresses create ${addressName}
     --network-tier=PREMIUM
     --ip-version=IPV4
     --global
     --description=${description}
     --project=${project}`;
-  const { stdout } = await execa`gcloud compute addresses describe ${addressName} --format=json --global --project=${project}`;
+  const { stdout } =
+    await execa`gcloud compute addresses describe ${addressName} --format=json --global --project=${project}`;
   return JSON.parse(stdout);
 }

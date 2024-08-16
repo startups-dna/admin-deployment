@@ -17,41 +17,49 @@ export class ConfiguratorModule extends pulumi.ComponentResource {
 
     const authConfig = new pulumi.Config('auth');
     const authTenantId = authConfig.get('tenantId');
-    const serviceImage = 'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/configurator:0.1.0';
+    const serviceImage =
+      'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/configurator:0.1.0';
 
     // Create a Cloud Run service definition.
-    this.service = new gcp.cloudrunv2.Service(`${PREFIX}-service`, {
-      location: globalConfig.location,
-      template: {
-        containers: [
-          {
-            image: serviceImage,
-            envs: [
-              {
-                name: 'DATABASE_URL',
-                valueSource: {
-                  secretKeyRef: {
-                    secret: opts.companyModule.dbUrlSecret.secretId,
-                    version: opts.companyModule.dbUrlSecretVersion.version,
+    this.service = new gcp.cloudrunv2.Service(
+      `${PREFIX}-service`,
+      {
+        location: globalConfig.location,
+        template: {
+          containers: [
+            {
+              image: serviceImage,
+              envs: [
+                {
+                  name: 'DATABASE_URL',
+                  valueSource: {
+                    secretKeyRef: {
+                      secret: opts.companyModule.dbUrlSecret.secretId,
+                      version: opts.companyModule.dbUrlSecretVersion.version,
+                    },
                   },
                 },
+                {
+                  name: 'ADMIN_AUTH_TENANT_ID',
+                  value: authTenantId,
+                },
+              ],
+              volumeMounts: [{ name: 'cloudsql', mountPath: '/cloudsql' }],
+            },
+          ],
+          volumes: [
+            {
+              name: 'cloudsql',
+              cloudSqlInstance: {
+                instances: [opts.companyModule.dbInstance.connectionName],
               },
-              {
-                name: 'ADMIN_AUTH_TENANT_ID',
-                value: authTenantId,
-              },
-            ],
-            volumeMounts: [
-              { name: 'cloudsql', mountPath: '/cloudsql' },
-            ],
-          },
-        ],
-        volumes: [
-          { name: 'cloudsql', cloudSqlInstance: { instances: [opts.companyModule.dbInstance.connectionName] } },
-        ],
+            },
+          ],
+        },
       },
-    }, {
-      parent: this,
-    });
+      {
+        parent: this,
+      },
+    );
   }
 }

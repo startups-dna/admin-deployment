@@ -10,7 +10,7 @@ import {
   checkPulumiStack,
   getPulumiStackConfig,
   getPulumiStackOutput,
-  pulumiLogin
+  pulumiLogin,
 } from './inc/pulumi.mjs';
 
 configDotenv({ override: true });
@@ -30,16 +30,19 @@ async function main() {
   const gcpRegion = config['gcp:region'];
   const configuratorService = output.configurator?.serviceName;
   if (!configuratorService) {
-    echo.error('Configurator service not found. Make sure the stack is deployed.');
+    echo.error(
+      'Configurator service not found. Make sure the stack is deployed.',
+    );
     process.exit(1);
   }
-  const { stdout: configuratorUrl } = await execa`gcloud run services describe ${configuratorService} --project=${gcpProject} --region=${gcpRegion} --format=${'value(status.url)'}`;
+  const { stdout: configuratorUrl } =
+    await execa`gcloud run services describe ${configuratorService} --project=${gcpProject} --region=${gcpRegion} --format=${'value(status.url)'}`;
   echo.log(`Configurator URL: ${configuratorUrl}`);
 
   const email = await input({
     type: 'input',
     message: 'Enter email for admin user:',
-    validate: (value) => value ? true : 'Email is required',
+    validate: (value) => (value ? true : 'Email is required'),
   });
 
   echo.log('Obtaining GCP ID token...');
@@ -51,7 +54,11 @@ async function main() {
   echo.success('Admin user initialized');
   console.log(chalk.dim(JSON.stringify(adminUser, null, 2)));
 
-  if (!await confirm({ message: 'Would you like to generate a password reset link?' })) {
+  if (
+    !(await confirm({
+      message: 'Would you like to generate a password reset link?',
+    }))
+  ) {
     return;
   }
 
@@ -70,16 +77,17 @@ class ConfiguratorApi {
       method,
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.token}`,
+        Authorization: `Bearer ${this.token}`,
       },
       body: undefined !== body && JSON.stringify(body),
-    })
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error(`Request failed with status ${res.status}: ` + res.statusText);
-        }
-        return res.json();
-      });
+    }).then((res) => {
+      if (!res.ok) {
+        throw new Error(
+          `Request failed with status ${res.status}: ` + res.statusText,
+        );
+      }
+      return res.json();
+    });
   }
 }
 
