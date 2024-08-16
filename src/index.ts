@@ -1,17 +1,31 @@
 import * as pulumi from '@pulumi/pulumi';
+import * as gcp from '@pulumi/gcp';
 import { LoadBalancer } from './components/LoadBalancer';
 import { CoreModule } from './components/CoreModule';
 import { CompanyModule } from './components/CompanyModule';
 import { AppToolsModule } from './components/AppToolsModule';
 import { ConfiguratorModule } from './components/ConfiguratorModule';
 import { FeedbackApiModule } from './components/FeedbackApiModule';
+import { globalConfig } from './config';
+
+const bucket = new gcp.storage.Bucket(
+  'admin-storage-bucket',
+  {
+    name: `${globalConfig.project}-storage`,
+    location: globalConfig.location,
+    storageClass: 'STANDARD',
+    uniformBucketLevelAccess: true,
+  },
+  { retainOnDelete: true },
+);
 
 const coreModule = new CoreModule();
-const companyModule = new CompanyModule();
+const companyModule = new CompanyModule({ storageBucketName: bucket.name });
 const configuratorModule = new ConfiguratorModule({ companyModule });
 let appToolsModule: AppToolsModule | undefined;
 let feedbackApiModule: FeedbackApiModule | undefined;
 const appToolsConfig = new pulumi.Config('appTools');
+
 if (appToolsConfig.get('enabled') === 'true') {
   appToolsModule = new AppToolsModule();
   feedbackApiModule = new FeedbackApiModule({

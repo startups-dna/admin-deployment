@@ -7,6 +7,10 @@ const PREFIX = 'admin-company';
 const DB_USER = 'admin-company';
 const DB_NAME = 'admin-company';
 
+type CompanyModuleArgs = {
+  storageBucketName: pulumi.Input<string>;
+};
+
 export class CompanyModule extends pulumi.ComponentResource {
   readonly service: gcp.cloudrunv2.Service;
   readonly serviceBackend: gcp.compute.BackendService;
@@ -14,23 +18,35 @@ export class CompanyModule extends pulumi.ComponentResource {
   readonly dbInstance: gcp.sql.DatabaseInstance;
   readonly dbUrlSecret: gcp.secretmanager.Secret;
   readonly dbUrlSecretVersion: gcp.secretmanager.SecretVersion;
+  readonly jiraTokenSecret?: gcp.secretmanager.Secret;
+  readonly jiraTokenSecretVersion?: gcp.secretmanager.SecretVersion;
 
-  constructor(opts: pulumi.ComponentResourceOptions = {}) {
-    super(`startupsdna:admin:${CompanyModule.name}`, PREFIX, {}, opts);
+  constructor(
+    args: CompanyModuleArgs,
+    opts: pulumi.ComponentResourceOptions = {},
+  ) {
+    super(`startupsdna:admin:${CompanyModule.name}`, PREFIX, args, opts);
 
     const authConfig = new pulumi.Config('auth');
     const authTenantId = authConfig.get('tenantId');
+
     const config = new pulumi.Config('company');
     const sqlInstanceName = config.require('sqlInstance');
+    const configJira = config.getObject<{
+      token: string;
+      email: string;
+      baseUrl: string;
+    }>('jira');
+
     const cpu = config.get('cpu') || '1';
     const memory = config.get('memory') || '512Mi';
     const concurrency = config.getNumber('concurrency') || 80;
     const serviceImage =
       config.get('serviceImage') ||
-      'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/company:0.1.0';
+      'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/company:0.2.0';
     const dbImage =
       config.get('dbImage') ||
-      'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/company-db:0.1.0';
+      'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/company-db:0.2.0';
 
     this.dbInstance = gcp.sql.DatabaseInstance.get(
       `${PREFIX}-sql-instance`,
@@ -99,6 +115,56 @@ export class CompanyModule extends pulumi.ComponentResource {
       },
     );
 
+    const jiraEnvs = [];
+    const condition =
+      configJira?.token && configJira?.baseUrl && configJira?.email;
+
+    if (condition) {
+      this.jiraTokenSecret = new gcp.secretmanager.Secret(
+        `${PREFIX}-jira-token-secret`,
+        {
+          secretId: `${PREFIX}-jira-token-secret`,
+          replication: {
+            auto: {},
+          },
+        },
+        {
+          parent: this,
+        },
+      );
+
+      this.jiraTokenSecretVersion = new gcp.secretmanager.SecretVersion(
+        `${PREFIX}-jira-token-secret-version`,
+        {
+          secret: this.jiraTokenSecret.id,
+          secretData: configJira.token,
+        },
+        {
+          parent: this,
+        },
+      );
+
+      jiraEnvs.push(
+        {
+          name: 'JIRA_TOKEN',
+          valueSource: {
+            secretKeyRef: {
+              secret: this.jiraTokenSecret.secretId,
+              version: this.jiraTokenSecretVersion.version,
+            },
+          },
+        },
+        {
+          name: 'JIRA_DOMAIN',
+          value: configJira?.baseUrl,
+        },
+        {
+          name: 'JIRA_EMAIL',
+          value: configJira?.email,
+        },
+      );
+    }
+
     // Create a Cloud Run service definition.
     this.service = new gcp.cloudrunv2.Service(
       `${PREFIX}-service`,
@@ -119,9 +185,18 @@ export class CompanyModule extends pulumi.ComponentResource {
                   },
                 },
                 {
+                  name: 'ADMIN_AUTH_PROJECT_ID',
+                  value: globalConfig.project,
+                },
+                {
                   name: 'ADMIN_AUTH_TENANT_ID',
                   value: authTenantId,
                 },
+                {
+                  name: 'FIREBASE_BUCKET_NAME',
+                  value: args.storageBucketName,
+                },
+                ...jiraEnvs,
               ],
               volumeMounts: [{ name: 'cloudsql', mountPath: '/cloudsql' }],
               resources: {

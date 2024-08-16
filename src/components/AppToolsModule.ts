@@ -120,6 +120,10 @@ export class AppToolsModule extends pulumi.ComponentResource {
             value: 'true',
           },
           {
+            name: 'ADMIN_AUTH_PROJECT_ID',
+            value: globalConfig.project,
+          },
+          {
             name: 'APP_STORE_CONNECT_KEY_ID',
             value: appStoreConnect.keyId,
           },
