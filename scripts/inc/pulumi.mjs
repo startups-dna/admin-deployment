@@ -59,6 +59,10 @@ export async function pulumiConfigSet(key, value, isSecret = false) {
   } --path ${key} ${String(value)}`;
 }
 
+export async function pulumiConfigRm(key) {
+  return execa`pulumi config rm --path ${key}`;
+}
+
 export async function getPulumiStackOutput() {
   return await $`pulumi stack output --json`.then(({ stdout }) =>
     JSON.parse(stdout),

@@ -13,7 +13,11 @@ import {
   selectGcloudSqlInstance,
 } from './gcloud.mjs';
 import { PULUMI_PROJECT } from './constants.mjs';
-import { getPulumiStackConfig, pulumiConfigSet } from './pulumi.mjs';
+import {
+  getPulumiStackConfig,
+  pulumiConfigRm,
+  pulumiConfigSet,
+} from './pulumi.mjs';
 
 export function isConfigAlterMode() {
   // read '--alter' flag from command line
@@ -173,15 +177,24 @@ export async function initStackConfig() {
 }
 
 async function initAppToolsConfig(configurator) {
-  await configurator.prompt('appTools:enabled', async (currentValue) => {
-    const enabled = await confirm({
-      message: 'Enable App Tools Service?',
-      default: currentValue === 'true',
-    });
-    return enabled ? 'true' : 'false';
-  });
+  // migrate old config
+  if (configurator.get('appTools:enabled')) {
+    const enabled = configurator.get('appTools:enabled') === 'true';
+    configurator.set(`${PULUMI_PROJECT}:modules.appTools`, enabled);
+    configurator.unset('appTools:enabled');
+  }
 
-  if (configurator.get('appTools:enabled') !== 'true') {
+  await configurator.prompt(
+    `${PULUMI_PROJECT}:modules.appTools`,
+    async (currentValue) => {
+      return confirm({
+        message: 'Enable App Tools Service?',
+        default: currentValue,
+      });
+    },
+  );
+
+  if (configurator.get(`${PULUMI_PROJECT}:modules.appTools`) !== true) {
     return;
   }
 
@@ -352,5 +365,10 @@ class StackConfigurator {
   async set(key, value, isSecret = false) {
     setValue(this.values, key, value);
     await pulumiConfigSet(key, value, isSecret);
+  }
+
+  async unset(key) {
+    setValue(this.values, key, undefined);
+    await pulumiConfigRm(key);
   }
 }
