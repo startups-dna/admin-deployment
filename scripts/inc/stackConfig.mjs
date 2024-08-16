@@ -133,6 +133,40 @@ export async function initStackConfig() {
     });
   });
 
+  await configurator.prompt('company:jira.enabled', async (currentValue) => {
+    return confirm({
+      message: 'Enable jira integration?',
+      default: currentValue,
+    });
+  });
+
+  if (configurator.get('company:jira.enabled')) {
+    await configurator.prompt('company:jira.baseUrl', async (currentValue) => {
+      return input({
+        message: 'Enter jira base url:',
+        default: currentValue,
+        validate: (value) => !!value || 'Value is required',
+      });
+    });
+
+    await configurator.prompt('company:jira.token', async (currentValue) => {
+      return input({
+        message: 'Enter jira token:',
+        default: currentValue,
+        validate: (value) => !!value || 'Value is required',
+      });
+    });
+
+    await configurator.prompt('company:jira.email', async (currentValue) => {
+      return input({
+        message:
+          'Enter the jira email address where you received your jira token:',
+        default: currentValue,
+        validate: (value) => !!value || 'Value is required',
+      });
+    });
+  }
+
   await initAppToolsConfig(configurator);
 
   echo.success('Stack configuration done.');
@@ -257,40 +291,6 @@ async function initAppToolsConfig(configurator) {
       });
     },
   );
-
-  await configurator.prompt('company:jira.enabled', async (currentValue) => {
-    return confirm({
-      message: 'Enable jira integration?',
-      default: currentValue,
-    });
-  });
-
-  if (configurator.get('company:jira.enabled')) {
-    await configurator.prompt('company:jira.baseUrl', async (currentValue) => {
-      return input({
-        message: 'Enter jira base url:',
-        default: currentValue,
-        validate: (value) => !!value || 'Value is required',
-      });
-    });
-
-    await configurator.prompt('company:jira.token', async (currentValue) => {
-      return input({
-        message: 'Enter jira token:',
-        default: currentValue,
-        validate: (value) => !!value || 'Value is required',
-      });
-    });
-
-    await configurator.prompt('company:jira.email', async (currentValue) => {
-      return input({
-        message:
-          'Enter the jira email address where you received your jira token:',
-        default: currentValue,
-        validate: (value) => !!value || 'Value is required',
-      });
-    });
-  }
 
   if (configurator.get('appTools:googlePlay.enabled')) {
     await configurator.prompt(
