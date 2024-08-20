@@ -21,7 +21,7 @@ export class CoreModule extends pulumi.ComponentResource {
     const concurrency = config.getNumber('concurrency') || 80;
     const image =
       config.get('serviceImage') ||
-      'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/core:0.2.0';
+      'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/core:0.3.0';
 
     // Define resources
     const envs: gcp.types.input.cloudrunv2.ServiceTemplateContainerEnv[] = [
