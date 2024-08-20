@@ -4,6 +4,8 @@ import { globalConfig } from '../config';
 const PREFIX = 'config-assets';
 
 export class ConfigAssets {
+  readonly backendBucket: gcp.compute.BackendBucket;
+
   constructor() {
     const systemConfig = {
       companyName: globalConfig.companyName,
@@ -48,8 +50,19 @@ export class ConfigAssets {
 
     new gcp.storage.BucketObject(`${PREFIX}-system-json`, {
       bucket: bucket.name,
+      name: 'config/system.json',
       content: JSON.stringify(systemConfig),
       contentType: 'application/json',
+    });
+
+    this.backendBucket = new gcp.compute.BackendBucket(`${PREFIX}-backend`, {
+      bucketName: bucket.name,
+      enableCdn: true,
+      cdnPolicy: {
+        clientTtl: 600,
+        defaultTtl: 600,
+        maxTtl: 3600,
+      },
     });
   }
 }

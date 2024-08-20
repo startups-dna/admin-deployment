@@ -29,6 +29,7 @@ if (globalConfig.modules?.appTools) {
 // Define service map
 const serviceMap = new Map<string, pulumi.Output<string>>();
 serviceMap.set('', coreModule.serviceBackend.id);
+serviceMap.set('config', configAssets.backendBucket.id);
 serviceMap.set('company', companyModule.serviceBackend.id);
 if (appToolsModule) {
   serviceMap.set('app-tools', appToolsModule.serviceBackend.id);
