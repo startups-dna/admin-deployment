@@ -10,6 +10,7 @@ import {
   selectGcloudApiKey,
   selectGcloudIpAddress,
   selectGcloudProject,
+  selectGcloudRunService,
   selectGcloudSqlInstance,
 } from './gcloud.mjs';
 import { PULUMI_PROJECT } from './constants.mjs';
@@ -172,6 +173,7 @@ export async function initStackConfig() {
   }
 
   await initAppToolsConfig(configurator);
+  await initAppCmsConfig(configurator);
 
   echo.success('Stack configuration done.');
 }
@@ -318,6 +320,38 @@ async function initAppToolsConfig(configurator) {
       },
     );
   }
+}
+
+async function initAppCmsConfig(configurator) {
+  await configurator.prompt(
+    `${PULUMI_PROJECT}:modules.appCms`,
+    async (currentValue) => {
+      return confirm({
+        message: 'Enable App CMS Service?',
+        default: currentValue,
+      });
+    },
+  );
+
+  if (configurator.get(`${PULUMI_PROJECT}:modules.appCms`) !== true) {
+    return;
+  }
+
+  await configurator.prompt('appCms:project', async (currentValue) => {
+    return selectGcloudProject({
+      message: 'GCP project where App CMS service is hosted:',
+      default: currentValue,
+      validate: (value) => !!value || 'Value is required',
+    });
+  });
+
+  await configurator.prompt('appCms:gcpRunService', async (currentValue) => {
+    return selectGcloudRunService({
+      project: configurator.get('appCms:project'),
+      message: 'GCP Cloud Run service for App CMS:',
+      default: currentValue,
+    });
+  });
 }
 
 class StackConfigurator {

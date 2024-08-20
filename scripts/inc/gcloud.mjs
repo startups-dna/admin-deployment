@@ -226,6 +226,24 @@ export async function selectGcloudIpAddress(opts = {}) {
   return choice;
 }
 
+export async function selectGcloudRunService(opts = {}) {
+  const services =
+    await execa`gcloud run services list --format=json --project=${opts.project}`.then(
+      ({ stdout }) => JSON.parse(stdout),
+    );
+  return select({
+    message: 'Select a Cloud Run service:',
+    ...opts,
+    choices: services.map((item) => {
+      const location = item.metadata.labels['cloud.googleapis.com/location'];
+      return {
+        name: `${item.metadata.name} (${location})`,
+        value: `${location}/${item.metadata.name}`,
+      };
+    }),
+  });
+}
+
 export async function createServiceAccountKey({ gcpProject, serviceAccount }) {
   const accountName = serviceAccount.replace(/@.*/, '');
   const keyFile = `./config/${accountName}.json`;
