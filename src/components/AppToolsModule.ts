@@ -28,10 +28,10 @@ export class AppToolsModule extends pulumi.ComponentResource {
     const concurrency = config.getNumber('concurrency') || 80;
     const serviceImage =
       config.get('serviceImage') ||
-      'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/app-tools:0.1.1';
+      'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/app-tools:0.3.0';
     const dbImage =
       config.get('dbImage') ||
-      'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/app-tools-db:0.1.1';
+      'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/app-tools-db:0.3.0';
     const appStoreAppId = config.get('appStoreAppId');
     type AppStoreConnectConfig = {
       enabled: boolean;
