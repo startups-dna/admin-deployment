@@ -1,6 +1,6 @@
 import * as pulumi from '@pulumi/pulumi';
 import * as gcp from '@pulumi/gcp';
-import { firebaseConfig, globalConfig } from '../config';
+import { globalConfig } from '../config';
 
 const PREFIX = 'admin-core';
 
@@ -24,6 +24,15 @@ export class CoreModule extends pulumi.ComponentResource {
       'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/core:0.3.0';
 
     // Define resources
+    const apiKey = new gcp.projects.ApiKey(`${PREFIX}-web-api-key`, {
+      displayName: 'Web API Key',
+      restrictions: {
+        browserKeyRestrictions: {
+          allowedReferrers: [`${globalConfig.domain}/*`],
+        },
+      },
+    });
+
     const envs: gcp.types.input.cloudrunv2.ServiceTemplateContainerEnv[] = [
       {
         name: 'COMPANY_NAME',
@@ -31,7 +40,7 @@ export class CoreModule extends pulumi.ComponentResource {
       },
       {
         name: 'FIREBASE_API_KEY',
-        value: firebaseConfig.apiKey,
+        value: apiKey.keyString,
       },
       {
         name: 'ADMIN_AUTH_PROJECT_ID',

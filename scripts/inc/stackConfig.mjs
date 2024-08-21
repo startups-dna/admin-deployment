@@ -120,14 +120,10 @@ export async function initStackConfig() {
     });
   });
 
-  await configurator.prompt('firebase:apiKey', async (currentValue) => {
-    return selectGcloudApiKey({
-      gcpProject: configurator.get('gcp:project'),
-      message: 'Select a GCP API key for Firebase Client:',
-      default: currentValue,
-      validate: (value) => !!value || 'API key is required',
-    });
-  });
+  // migration: delete old config
+  if (configurator.get('firebase:apiKey')) {
+    await configurator.unset('firebase:apiKey');
+  }
 
   await configurator.prompt('company:sqlInstance', async (currentValue) => {
     return selectGcloudSqlInstance({

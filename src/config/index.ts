@@ -24,5 +24,3 @@ export const globalConfig = {
   location,
   project,
 };
-
-export * from './firebase';

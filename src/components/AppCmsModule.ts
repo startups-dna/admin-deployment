@@ -1,13 +1,7 @@
 import * as pulumi from '@pulumi/pulumi';
 import * as gcp from '@pulumi/gcp';
-import { firebaseConfig, globalConfig } from '../config';
 
 const PREFIX = 'admin-app-cms';
-
-type GcpRunService = {
-  project: string;
-  name: string;
-};
 
 export class AppCmsModule extends pulumi.ComponentResource {
   service: pulumi.Output<gcp.cloudrunv2.GetServiceResult>;
