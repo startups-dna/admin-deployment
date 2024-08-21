@@ -7,7 +7,6 @@ import {
   createGlobalIp,
   getGcpDefaultProject,
   getGcpDefaultRegion,
-  selectGcloudApiKey,
   selectGcloudIpAddress,
   selectGcloudProject,
   selectGcloudRunService,

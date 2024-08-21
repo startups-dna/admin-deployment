@@ -1,17 +1,17 @@
 import { $, execa } from 'execa';
 import chalk from 'chalk';
-import { input } from '@inquirer/prompts';
+import ora, { oraPromise } from 'ora';
 import { DEFAULT_STACK, PULUMI_PROJECT } from './constants.mjs';
 import { echo } from './echo.mjs';
 import { getStateBucketId } from './stateBucket.mjs';
 
 export async function checkPulumiCli() {
-  echo.log('Checking pulumi CLI...');
+  const o = ora().start('Checking pulumi CLI...');
   try {
     await $`pulumi version`;
-    echo.success('pulumi CLI is installed');
+    o.succeed('pulumi CLI is installed.');
   } catch (e) {
-    echo.error('pulumi CLI is not installed');
+    o.fail('pulumi CLI is not installed');
     echo.info(
       `Please install pulumi:`,
       chalk.white.underline('https://www.pulumi.com/docs/install/'),
@@ -21,9 +21,16 @@ export async function checkPulumiCli() {
 }
 
 export async function pulumiLogin() {
-  echo.log('Logging in to pulumi...');
-  const stateBucketId = getStateBucketId();
-  await execa({ stdio: 'inherit' })`pulumi login ${stateBucketId}`;
+  await oraPromise(
+    async (o) => {
+      const stateBucketId = getStateBucketId();
+      const { stdout } = await execa`pulumi login ${stateBucketId}`;
+      o.text = stdout;
+    },
+    {
+      text: 'Logging in to pulumi...',
+    },
+  );
 }
 
 export async function checkPulumiStack() {
@@ -34,17 +41,24 @@ export async function checkPulumiStack() {
   if (stacks.length === 0) {
     await initStack(DEFAULT_STACK);
   } else if (stacks.length === 1) {
-    echo.log(`Selecting pulumi stack [${stacks[0].name}]...`);
-    await execa({ stdio: 'inherit' })`pulumi stack select ${stacks[0].name}`;
+    const stackName = stacks[0].name;
+    await oraPromise(
+      () => execa({ stdio: 'inherit' })`pulumi stack select ${stackName}`,
+      {
+        text: `Selecting pulumi stack [${stackName}]...`,
+        successText: `Pulumi stack [${stackName}] selected.`,
+      },
+    );
   } else {
     await execa({ stdio: 'inherit' })`pulumi stack select`;
   }
 }
 
 export async function initStack(stackName) {
-  // init pulumi stack
-  echo.log(`Initializing pulumi stack [${stackName}]...`);
-  await $`pulumi stack init ${stackName}`;
+  await oraPromise(async () => await execa`pulumi stack init ${stackName}`, {
+    text: `Initializing Pulumi stack [${stackName}]...`,
+    successText: `Pulumi stack [${stackName}] initialized.`,
+  });
 }
 
 export async function getPulumiStackConfig() {

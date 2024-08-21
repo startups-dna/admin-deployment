@@ -2,15 +2,16 @@ import { select } from '@inquirer/prompts';
 import { $, execa } from 'execa';
 import fs from 'fs';
 import chalk from 'chalk';
+import ora, { oraPromise } from 'ora';
 import { echo } from './echo.mjs';
 
 export async function checkGCloudCli() {
-  echo.log('Checking gcloud CLI...');
+  const o = ora().start('Checking gcloud CLI...');
   try {
     await $`gcloud --version`;
-    echo.success('gcloud CLI is installed');
+    o.succeed('gcloud CLI is installed.');
   } catch (e) {
-    echo.error('gcloud CLI is not installed.');
+    o.fail('gcloud CLI is not installed.');
     echo.info(
       `Please install gcloud:`,
       chalk.white.underline('https://cloud.google.com/sdk/docs/install'),
@@ -20,58 +21,70 @@ export async function checkGCloudCli() {
 }
 
 export async function gcloudAuth() {
-  echo.log('Authenticating gcloud...');
+  const o = ora().start('Authenticating gcloud...');
   try {
     const { stdout } =
       await $`gcloud auth application-default print-access-token`;
     if (!stdout) {
       throw new Error('no access token');
     }
-    echo.success('gcloud is authenticated');
+    o.succeed('gcloud is authenticated.');
   } catch (e) {
-    echo.warn('gcloud authentication is required to proceed');
+    o.warn('gcloud authentication is required to proceed');
     await $`gcloud auth application-default login`;
   }
 }
 
 export async function checkGcloudServices() {
-  const gcpProject = getGcpDefaultProject();
+  await oraPromise(
+    async (o) => {
+      const gcpProject = getGcpDefaultProject();
+      const enabledServices =
+        await execa`gcloud services list --enabled --format=${'value(config.name)'} --project=${gcpProject}`.then(
+          ({ stdout }) => stdout.split('\n'),
+        );
 
-  echo.log(`Checking enabled GCP services...`);
-  const enabledServices =
-    await execa`gcloud services list --enabled --format=${'value(config.name)'} --project=${gcpProject}`.then(
-      ({ stdout }) => stdout.split('\n'),
-    );
+      const requiredServices = [
+        'compute.googleapis.com',
+        'sqladmin.googleapis.com',
+        'run.googleapis.com',
+        'secretmanager.googleapis.com',
+      ];
 
-  const requiredServices = [
-    'compute.googleapis.com',
-    'sqladmin.googleapis.com',
-    'run.googleapis.com',
-    'secretmanager.googleapis.com',
-  ];
+      const missingServices = requiredServices.filter(
+        (service) => !enabledServices.includes(service),
+      );
 
-  const missingServices = requiredServices.filter(
-    (service) => !enabledServices.includes(service),
+      if (missingServices.length === 0) {
+        return;
+      }
+
+      for (const service of missingServices) {
+        o.text = `Enabling service ${service}...`;
+        await execa`gcloud services enable ${service} --project=${gcpProject}`;
+      }
+    },
+    {
+      text: 'Checking required GCP services...',
+      successText: 'All required GCP services are enabled.',
+    },
   );
-
-  if (missingServices.length === 0) {
-    echo.success('All required GCP services are enabled.');
-    return;
-  }
-
-  for (const service of missingServices) {
-    echo.log(`Enabling service ${service}...`);
-    await execa`gcloud services enable ${service} --project=${gcpProject}`;
-  }
 }
 
 export async function setGcloudServiceRoles() {
-  const project = getGcpDefaultProject();
-  const projectNumber = await getGcloudProjectNumber(project);
-  const serviceAccount = `${projectNumber}-compute@developer.gserviceaccount.com`;
-  echo.log(`Setting necessary service roles for ${serviceAccount}...`);
-  await execa`gcloud projects add-iam-policy-binding ${project} --member=serviceAccount:${serviceAccount} --role=${'roles/secretmanager.secretAccessor'}`;
-  await execa`gcloud projects add-iam-policy-binding ${project} --member=serviceAccount:${serviceAccount} --role=${'roles/cloudsql.client'}`;
+  await oraPromise(
+    async () => {
+      const project = getGcpDefaultProject();
+      const projectNumber = await getGcloudProjectNumber(project);
+      const serviceAccount = `${projectNumber}-compute@developer.gserviceaccount.com`;
+      await execa`gcloud projects add-iam-policy-binding ${project} --member=serviceAccount:${serviceAccount} --role=${'roles/secretmanager.secretAccessor'}`;
+      await execa`gcloud projects add-iam-policy-binding ${project} --member=serviceAccount:${serviceAccount} --role=${'roles/cloudsql.client'}`;
+    },
+    {
+      text: 'Setting necessary GCP service roles...',
+      successText: 'GCP service roles are set.',
+    },
+  );
 }
 
 export async function getGcloudProjectNumber(project) {
