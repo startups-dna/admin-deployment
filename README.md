@@ -19,27 +19,12 @@ npm install
 
    - Engine: PostgreSQL 15 or above;
 
-4. **This step is optional, if you didn't choose manual creation**. <br>
-   Create new IP address in Google Cloud (name example: `admin-ip`).<br/>
-   Requirements:
-
-   - Network Service Tier: Premium;
-   - IP version: IPv4;
-   - Type: Global;
-
-5. Add DNS record for the IP address in your domain provider.<br/>
-   Example:
-   ```
-   admin.mycompany.com. 3600 IN A
-   ```
-6. Enable Identity Platform in Google Cloud: https://console.cloud.google.com/marketplace/product/google-cloud-platform/customer-identity<br/>
+4. Enable Identity Platform in Google Cloud: https://console.cloud.google.com/marketplace/product/google-cloud-platform/customer-identity<br/>
    Requirements:
 
    - Add Provider: Email/Password;
 
-7. Create API key in Google Cloud: https://console.cloud.google.com/apis/credentials;
-
-8. Create Consent Screen in Google Cloud: https://console.cloud.google.com/apis/credentials/consent;
+5. Create Consent Screen in Google Cloud: https://console.cloud.google.com/apis/credentials/consent;
    - User Type: External;
    - Application Name: `MyCompany Admin`;
    - Click **"Publish app"** after configuration.;
