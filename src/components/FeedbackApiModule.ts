@@ -16,7 +16,7 @@ export class FeedbackApiModule extends pulumi.ComponentResource {
   readonly sslCert: gcp.compute.ManagedSslCertificate;
   readonly httpsProxy: gcp.compute.TargetHttpsProxy;
   readonly globalAddress: Promise<gcp.compute.GetGlobalAddressResult>;
-  readonly url: pulumi.Output<string>;
+  readonly domain: string;
 
   constructor(
     args: FeedbackApiModuleArgs,
@@ -29,7 +29,7 @@ export class FeedbackApiModule extends pulumi.ComponentResource {
     const serviceImage =
       config.get('serviceImage') ||
       'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/feedback-api:0.3.0';
-    const domain = config.require('domain');
+    this.domain = config.require('domain');
     const ipName = config.require('ipName');
 
     // create resources
@@ -132,7 +132,7 @@ export class FeedbackApiModule extends pulumi.ComponentResource {
       {
         hostRules: [
           {
-            hosts: [domain],
+            hosts: [this.domain],
             pathMatcher: 'path-matcher',
           },
         ],
@@ -153,7 +153,7 @@ export class FeedbackApiModule extends pulumi.ComponentResource {
       `${PREFIX}-ssl`,
       {
         managed: {
-          domains: [domain],
+          domains: [this.domain],
         },
       },
       {
@@ -195,8 +195,16 @@ export class FeedbackApiModule extends pulumi.ComponentResource {
         parent: this,
       },
     );
+  }
 
-    // Export the URL of the load balancer
-    this.url = pulumi.interpolate`https://${domain}`;
+  get output() {
+    return {
+      domain: this.domain,
+      ipAddress: pulumi.Output.create(
+        this.globalAddress.then(({ address }) => address),
+      ),
+      url: pulumi.interpolate`https://${this.domain}`,
+      serviceName: this.service.name,
+    };
   }
 }

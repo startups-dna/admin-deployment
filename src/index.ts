@@ -52,7 +52,7 @@ const adminLb = new LoadBalancer({
   serviceMap,
 });
 
-export const url = adminLb.url;
+export const loadBalancer = adminLb.output;
 export const core = {
   serviceName: coreModule.service.name,
 };
@@ -69,12 +69,7 @@ export const appTools = appToolsModule
       dbJobName: appToolsModule.dbJob?.name,
     }
   : {};
-export const feedbackApi = feedbackApiModule
-  ? {
-      serviceName: feedbackApiModule.service?.name,
-      url: feedbackApiModule.url,
-    }
-  : {};
+export const feedbackApi = feedbackApiModule ? feedbackApiModule.output : {};
 export const appCms = appCmsModule
   ? {
       serviceName: appCmsModule.service.name,

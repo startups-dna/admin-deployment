@@ -12,7 +12,6 @@ export class LoadBalancer extends pulumi.ComponentResource {
   readonly sslCert: gcp.compute.ManagedSslCertificate;
   readonly httpsProxy: gcp.compute.TargetHttpsProxy;
   readonly globalAddress: Promise<gcp.compute.GetGlobalAddressResult>;
-  readonly url: pulumi.Output<string>;
 
   constructor(opts: LoadBalancerOpts) {
     super(`startupsdna:admin:${LoadBalancer.name}`, 'admin-lb', {}, opts);
@@ -98,8 +97,15 @@ export class LoadBalancer extends pulumi.ComponentResource {
         parent: this,
       },
     );
+  }
 
-    // Export the URL of the load balancer
-    this.url = pulumi.interpolate`https://${globalConfig.domain}`;
+  get output() {
+    return {
+      domain: globalConfig.domain,
+      ipAddress: pulumi.Output.create(
+        this.globalAddress.then(({ address }) => address),
+      ),
+      url: pulumi.interpolate`https://${globalConfig.domain}`,
+    };
   }
 }

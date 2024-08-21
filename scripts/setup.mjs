@@ -9,9 +9,7 @@ import { handleError } from './inc/common.mjs';
 import {
   checkGCloudCli,
   checkGcloudServices,
-  createGlobalIp,
   gcloudAuth,
-  getGcloudIpAddresses,
   getGcloudProjectNumber,
   getGcloudSqlInstances,
   getGcpDefaultProject,
@@ -32,7 +30,6 @@ async function main() {
   await setGcloudServiceRoles();
   await checkStateBucket();
   await maybeCreateSqlInstance();
-  await maybeReserveIpAddress();
   await requestAccessInfo();
 }
 
@@ -150,40 +147,6 @@ async function maybeCreateSqlInstance() {
     --region=${region}`;
 
   echo.success(`Cloud SQL instance [${instanceId}] creation is scheduled.`);
-}
-
-async function maybeReserveIpAddress() {
-  const project = getGcpDefaultProject();
-
-  echo.log(`Checking for existing IP addresses...`);
-  const addresses = await getGcloudIpAddresses(project, 'addressType=EXTERNAL');
-  if (addresses.length > 0) {
-    echo.success(`Found ${addresses.length} IP address(es)`);
-    return;
-  }
-
-  echo.log(`No IP address reservation found in your project [${project}].`);
-  const yes = await confirm({
-    message: `Do you want this script to reserve a new IP address for you ${chalk.grey(
-      '(Y)',
-    )} or create manually ${chalk.grey('(n)')}?`,
-  });
-
-  if (!yes) {
-    return;
-  }
-
-  const addressName = 'admin-ip';
-  const description = 'Admin IP address';
-
-  echo.log(`Reserving IP address [${addressName}]...`);
-  const ip = await createGlobalIp(project, addressName, description);
-
-  echo.success(`IP address [${addressName}] reserved.`);
-  echo.info(
-    'Please, use the following IP address as A record in your DNS records:',
-  );
-  echo.infoBox(ip.address);
 }
 
 async function requestAccessInfo() {

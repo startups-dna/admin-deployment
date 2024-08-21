@@ -81,9 +81,10 @@ export async function initStackConfig() {
     `${PULUMI_PROJECT}:ipName`,
     async (currentValue) => {
       const project = configurator.get('gcp:project');
+      const domain = configurator.get(`${PULUMI_PROJECT}:domain`);
       return selectGcloudIpAddress({
         project: project,
-        message: 'Select GCP IP address for admin domain:',
+        message: `Select GCP IP address for ${domain}:`,
         default: currentValue,
         create: async () => {
           const addressName = 'admin-ip';
