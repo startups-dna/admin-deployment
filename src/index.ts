@@ -16,7 +16,10 @@ const coreModule = new CoreModule();
 const companyModule = new CompanyModule({
   storageBucketName: storage.bucket.name,
 });
-const configuratorModule = new ConfiguratorModule({ companyModule });
+const configuratorModule = new ConfiguratorModule({
+  companyModule,
+  storageBucketName: storage.bucket.name,
+});
 
 let appToolsModule: AppToolsModule | undefined;
 let feedbackApiModule: FeedbackApiModule | undefined;

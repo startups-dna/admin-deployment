@@ -5,20 +5,24 @@ import { CompanyModule } from './CompanyModule';
 
 const PREFIX = 'admin-configurator';
 
-export type ConfiguratorModuleOptions = pulumi.ComponentResourceOptions & {
+export type ConfiguratorModuleArgs = {
   companyModule: CompanyModule;
+  storageBucketName: pulumi.Input<string>;
 };
 
 export class ConfiguratorModule extends pulumi.ComponentResource {
   service: gcp.cloudrunv2.Service;
 
-  constructor(opts: ConfiguratorModuleOptions) {
-    super(`startupsdna:admin:${ConfiguratorModule.name}`, PREFIX, {}, opts);
+  constructor(
+    args: ConfiguratorModuleArgs,
+    opts?: pulumi.ComponentResourceOptions,
+  ) {
+    super(`startupsdna:admin:${ConfiguratorModule.name}`, PREFIX, args, opts);
 
     const authConfig = new pulumi.Config('auth');
     const authTenantId = authConfig.get('tenantId');
     const serviceImage =
-      'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/configurator:0.3.0';
+      'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/configurator:0.3.1';
 
     // Create a Cloud Run service definition.
     this.service = new gcp.cloudrunv2.Service(
@@ -34,14 +38,18 @@ export class ConfiguratorModule extends pulumi.ComponentResource {
                   name: 'DATABASE_URL',
                   valueSource: {
                     secretKeyRef: {
-                      secret: opts.companyModule.dbUrlSecret.secretId,
-                      version: opts.companyModule.dbUrlSecretVersion.version,
+                      secret: args.companyModule.dbUrlSecret.secretId,
+                      version: args.companyModule.dbUrlSecretVersion.version,
                     },
                   },
                 },
                 {
                   name: 'ADMIN_AUTH_TENANT_ID',
                   value: authTenantId,
+                },
+                {
+                  name: 'FIREBASE_BUCKET_NAME',
+                  value: args.storageBucketName,
                 },
               ],
               volumeMounts: [{ name: 'cloudsql', mountPath: '/cloudsql' }],
@@ -51,7 +59,7 @@ export class ConfiguratorModule extends pulumi.ComponentResource {
             {
               name: 'cloudsql',
               cloudSqlInstance: {
-                instances: [opts.companyModule.dbInstance.connectionName],
+                instances: [args.companyModule.dbInstance.connectionName],
               },
             },
           ],
