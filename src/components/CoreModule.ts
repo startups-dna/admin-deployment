@@ -1,10 +1,11 @@
 import * as pulumi from '@pulumi/pulumi';
 import * as gcp from '@pulumi/gcp';
 import { globalConfig } from '../config';
+import { HasOutput } from '../interfaces';
 
 const PREFIX = 'admin-core';
 
-export class CoreModule extends pulumi.ComponentResource {
+export class CoreModule extends pulumi.ComponentResource implements HasOutput {
   service: gcp.cloudrunv2.Service;
   serviceBackend: gcp.compute.BackendService;
   serviceNeg: gcp.compute.RegionNetworkEndpointGroup;
@@ -128,5 +129,11 @@ export class CoreModule extends pulumi.ComponentResource {
         parent: this,
       },
     );
+  }
+
+  output() {
+    return {
+      serviceName: this.service.name,
+    };
   }
 }

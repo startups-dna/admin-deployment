@@ -1,6 +1,7 @@
 import * as pulumi from '@pulumi/pulumi';
 import * as gcp from '@pulumi/gcp';
 import { globalConfig } from '../config';
+import { HasOutput } from '../interfaces';
 import { CompanyModule } from './CompanyModule';
 
 const PREFIX = 'admin-configurator';
@@ -10,7 +11,10 @@ export type ConfiguratorModuleArgs = {
   storageBucketName: pulumi.Input<string>;
 };
 
-export class ConfiguratorModule extends pulumi.ComponentResource {
+export class ConfiguratorModule
+  extends pulumi.ComponentResource
+  implements HasOutput
+{
   service: gcp.cloudrunv2.Service;
 
   constructor(
@@ -69,5 +73,11 @@ export class ConfiguratorModule extends pulumi.ComponentResource {
         parent: this,
       },
     );
+  }
+
+  output() {
+    return {
+      serviceName: this.service.name,
+    };
   }
 }

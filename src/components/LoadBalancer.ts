@@ -1,20 +1,24 @@
 import * as pulumi from '@pulumi/pulumi';
 import * as gcp from '@pulumi/gcp';
 import { globalConfig } from '../config';
+import { HasOutput } from '../interfaces';
 
-export type LoadBalancerOpts = pulumi.ComponentResourceOptions & {
+export type LoadBalancerArgs = {
   defaultService: pulumi.Output<string>;
-  serviceMap: Map<string, pulumi.Output<string>>;
 };
 
-export class LoadBalancer extends pulumi.ComponentResource {
+export class LoadBalancer
+  extends pulumi.ComponentResource
+  implements HasOutput
+{
   readonly urlMap: gcp.compute.URLMap;
   readonly sslCert: gcp.compute.ManagedSslCertificate;
   readonly httpsProxy: gcp.compute.TargetHttpsProxy;
   readonly globalAddress: Promise<gcp.compute.GetGlobalAddressResult>;
+  private pathRules: gcp.types.input.compute.URLMapPathMatcherPathRule[] = [];
 
-  constructor(opts: LoadBalancerOpts) {
-    super(`startupsdna:admin:${LoadBalancer.name}`, 'admin-lb', {}, opts);
+  constructor(args: LoadBalancerArgs, opts?: pulumi.ComponentResourceOptions) {
+    super(`startupsdna:admin:${LoadBalancer.name}`, 'admin-lb', args, opts);
 
     // Define URL map
     this.urlMap = new gcp.compute.URLMap(
@@ -34,15 +38,8 @@ export class LoadBalancer extends pulumi.ComponentResource {
         pathMatchers: [
           {
             name: 'path-matcher',
-            defaultService: opts.defaultService,
-            pathRules: [
-              ...Array.from(opts.serviceMap.entries()).map(
-                ([path, service]) => ({
-                  paths: [`/${path}`, `/${path}/*`],
-                  service,
-                }),
-              ),
-            ],
+            defaultService: args.defaultService,
+            pathRules: this.pathRules,
           },
         ],
       },
@@ -99,7 +96,11 @@ export class LoadBalancer extends pulumi.ComponentResource {
     );
   }
 
-  get output() {
+  addPathRules(pathRules: gcp.types.input.compute.URLMapPathMatcherPathRule[]) {
+    this.pathRules.push(...pathRules);
+  }
+
+  output() {
     return {
       domain: globalConfig.domain,
       ipAddress: pulumi.Output.create(

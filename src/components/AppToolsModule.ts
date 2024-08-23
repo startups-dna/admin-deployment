@@ -3,6 +3,7 @@ import * as gcp from '@pulumi/gcp';
 import * as fs from 'node:fs';
 import { globalConfig } from '../config';
 import { DatabaseResources } from './DatabaseResources';
+import { HasOutput, HasPathRules } from '../interfaces';
 
 const PREFIX = 'admin-app-tools';
 const DB_USER = 'admin-app-tools';
@@ -10,7 +11,10 @@ const DB_NAME = 'admin-app-tools';
 
 type ServiceEnvs = gcp.types.input.cloudrunv2.ServiceTemplateContainerEnv[];
 
-export class AppToolsModule extends pulumi.ComponentResource {
+export class AppToolsModule
+  extends pulumi.ComponentResource
+  implements HasOutput, HasPathRules
+{
   readonly database: DatabaseResources;
   readonly service: gcp.cloudrunv2.Service;
   readonly serviceBackend: gcp.compute.BackendService;
@@ -307,5 +311,21 @@ export class AppToolsModule extends pulumi.ComponentResource {
         parent: this,
       },
     );
+  }
+
+  output() {
+    return {
+      serviceName: this.service.name,
+      dbJobName: this.dbJob.name,
+    };
+  }
+
+  pathRules() {
+    return [
+      {
+        paths: ['/app-tools', '/app-tools/*'],
+        service: this.serviceBackend.id,
+      },
+    ];
   }
 }

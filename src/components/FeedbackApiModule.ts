@@ -2,6 +2,7 @@ import * as pulumi from '@pulumi/pulumi';
 import * as gcp from '@pulumi/gcp';
 import { globalConfig } from '../config';
 import { DatabaseResources } from './DatabaseResources';
+import { HasOutput } from '../interfaces';
 
 const PREFIX = 'feedback-api';
 
@@ -9,7 +10,10 @@ type FeedbackApiModuleArgs = {
   database: DatabaseResources;
 };
 
-export class FeedbackApiModule extends pulumi.ComponentResource {
+export class FeedbackApiModule
+  extends pulumi.ComponentResource
+  implements HasOutput
+{
   readonly service: gcp.cloudrunv2.Service;
   readonly serviceBackend: gcp.compute.BackendService;
   readonly urlMap: gcp.compute.URLMap;
@@ -197,7 +201,7 @@ export class FeedbackApiModule extends pulumi.ComponentResource {
     );
   }
 
-  get output() {
+  output() {
     return {
       domain: this.domain,
       ipAddress: pulumi.Output.create(

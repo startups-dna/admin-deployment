@@ -1,4 +1,3 @@
-import * as pulumi from '@pulumi/pulumi';
 import { ConfigAssets } from './components/ConfigAssets';
 import { StorageResources } from './components/StorageResources';
 import { LoadBalancer } from './components/LoadBalancer';
@@ -20,6 +19,11 @@ const configuratorModule = new ConfiguratorModule({
   companyModule,
   storageBucketName: storage.bucket.name,
 });
+const adminLb = new LoadBalancer({
+  defaultService: coreModule.serviceBackend.id,
+});
+adminLb.addPathRules(configAssets.pathRules());
+adminLb.addPathRules(companyModule.pathRules());
 
 let appToolsModule: AppToolsModule | undefined;
 let feedbackApiModule: FeedbackApiModule | undefined;
@@ -28,50 +32,20 @@ if (globalConfig.modules?.appTools) {
   feedbackApiModule = new FeedbackApiModule({
     database: appToolsModule.database,
   });
+  adminLb.addPathRules(appToolsModule.pathRules());
 }
 
 let appCmsModule: AppCmsModule | undefined;
 if (globalConfig.modules?.appCms) {
   appCmsModule = new AppCmsModule();
+  adminLb.addPathRules(appCmsModule.pathRules());
 }
 
-// Define service map
-const serviceMap = new Map<string, pulumi.Output<string>>();
-serviceMap.set('', coreModule.serviceBackend.id);
-serviceMap.set('config', configAssets.backendBucket.id);
-serviceMap.set('company', companyModule.serviceBackend.id);
-if (appToolsModule) {
-  serviceMap.set('app-tools', appToolsModule.serviceBackend.id);
-}
-if (appCmsModule) {
-  serviceMap.set('app-cms', appCmsModule.backendService.id);
-}
-
-const adminLb = new LoadBalancer({
-  defaultService: coreModule.serviceBackend.id,
-  serviceMap,
-});
-
-export const loadBalancer = adminLb.output;
-export const core = {
-  serviceName: coreModule.service.name,
-};
-export const company = {
-  serviceName: companyModule.service?.name,
-  dbJobName: companyModule.dbJob?.name,
-};
-export const configurator = {
-  serviceName: configuratorModule.service.name,
-};
-export const appTools = appToolsModule
-  ? {
-      serviceName: appToolsModule.service?.name,
-      dbJobName: appToolsModule.dbJob?.name,
-    }
-  : {};
-export const feedbackApi = feedbackApiModule ? feedbackApiModule.output : {};
-export const appCms = appCmsModule
-  ? {
-      serviceName: appCmsModule.service.name,
-    }
-  : {};
+// Export the outputs
+export const loadBalancer = adminLb.output();
+export const core = coreModule.output();
+export const company = companyModule.output();
+export const configurator = configuratorModule.output();
+export const appTools = appToolsModule ? appToolsModule.output() : {};
+export const feedbackApi = feedbackApiModule ? feedbackApiModule.output() : {};
+export const appCms = appCmsModule ? appCmsModule.output() : {};

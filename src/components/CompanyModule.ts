@@ -2,6 +2,7 @@ import * as pulumi from '@pulumi/pulumi';
 import * as gcp from '@pulumi/gcp';
 import * as random from '@pulumi/random';
 import { globalConfig } from '../config';
+import { HasOutput, HasPathRules } from '../interfaces';
 
 const PREFIX = 'admin-company';
 const DB_USER = 'admin-company';
@@ -11,7 +12,10 @@ type CompanyModuleArgs = {
   storageBucketName: pulumi.Input<string>;
 };
 
-export class CompanyModule extends pulumi.ComponentResource {
+export class CompanyModule
+  extends pulumi.ComponentResource
+  implements HasOutput, HasPathRules
+{
   readonly service: gcp.cloudrunv2.Service;
   readonly serviceBackend: gcp.compute.BackendService;
   readonly dbJob: gcp.cloudrunv2.Job;
@@ -310,5 +314,21 @@ export class CompanyModule extends pulumi.ComponentResource {
         parent: this,
       },
     );
+  }
+
+  output() {
+    return {
+      serviceName: this.service.name,
+      dbJobName: this.dbJob.name,
+    };
+  }
+
+  pathRules() {
+    return [
+      {
+        paths: ['/company', '/company/*'],
+        service: this.serviceBackend.id,
+      },
+    ];
   }
 }

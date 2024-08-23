@@ -1,9 +1,13 @@
 import * as pulumi from '@pulumi/pulumi';
 import * as gcp from '@pulumi/gcp';
+import { HasOutput, HasPathRules } from '../interfaces';
 
 const PREFIX = 'admin-app-cms';
 
-export class AppCmsModule extends pulumi.ComponentResource {
+export class AppCmsModule
+  extends pulumi.ComponentResource
+  implements HasOutput, HasPathRules
+{
   service: pulumi.Output<gcp.cloudrunv2.GetServiceResult>;
   backendService: gcp.compute.BackendService;
   serviceNeg: gcp.compute.GlobalNetworkEndpointGroup;
@@ -67,5 +71,20 @@ export class AppCmsModule extends pulumi.ComponentResource {
         parent: this,
       },
     );
+  }
+
+  pathRules() {
+    return [
+      {
+        paths: ['/app-cms', '/app-cms/*'],
+        service: this.backendService.id,
+      },
+    ];
+  }
+
+  output() {
+    return {
+      serviceName: this.service.name,
+    };
   }
 }

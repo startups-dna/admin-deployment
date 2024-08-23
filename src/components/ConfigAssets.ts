@@ -1,9 +1,10 @@
 import * as gcp from '@pulumi/gcp';
 import { globalConfig } from '../config';
+import { HasPathRules } from '../interfaces';
 
 const PREFIX = 'config-assets';
 
-export class ConfigAssets {
+export class ConfigAssets implements HasPathRules {
   readonly backendBucket: gcp.compute.BackendBucket;
 
   constructor() {
@@ -64,5 +65,14 @@ export class ConfigAssets {
         maxTtl: 3600,
       },
     });
+  }
+
+  pathRules() {
+    return [
+      {
+        paths: ['/config', '/config/*'],
+        service: this.backendBucket.id,
+      },
+    ];
   }
 }
