@@ -8,8 +8,10 @@ export class AppCmsModule
   extends pulumi.ComponentResource
   implements HasOutput, HasPathRules
 {
-  service: pulumi.Output<gcp.cloudrunv2.GetServiceResult>;
-  backendService: gcp.compute.BackendService;
+  apiService: pulumi.Output<gcp.cloudrunv2.GetServiceResult>;
+  uiService: pulumi.Output<gcp.cloudrunv2.GetServiceResult>;
+  apiBackendService: gcp.compute.BackendService;
+  uiBackendService: gcp.compute.BackendService;
   serviceNeg: gcp.compute.GlobalNetworkEndpointGroup;
   serviceNe: gcp.compute.GlobalNetworkEndpoint;
 
@@ -19,14 +21,24 @@ export class AppCmsModule
     // Read configuration
     const config = new pulumi.Config('appCms');
     const project = config.require('project');
-    const gcpRunService = config.require('gcpRunService');
-    const [serviceLocation, serviceName] = gcpRunService.split('/');
+    const [apiServiceLocation, apiServiceName] = config
+      .require('apiService')
+      .split('/');
+    const [uiServiceLocation, uiServiceName] = config
+      .require('uiService')
+      .split('/');
 
-    // get a Cloud Run service
-    this.service = gcp.cloudrunv2.getServiceOutput({
+    // get a Cloud Run services
+    this.apiService = gcp.cloudrunv2.getServiceOutput({
       project: project,
-      location: serviceLocation,
-      name: serviceName,
+      location: apiServiceLocation,
+      name: apiServiceName,
+    });
+
+    this.uiService = gcp.cloudrunv2.getServiceOutput({
+      project: project,
+      location: uiServiceLocation,
+      name: uiServiceName,
     });
 
     this.serviceNeg = new gcp.compute.GlobalNetworkEndpointGroup(
@@ -51,12 +63,12 @@ export class AppCmsModule
       },
     );
 
-    const hostHeader = this.service.uri.apply((uri) => {
+    const apiHostHeader = this.apiService.uri.apply((uri) => {
       return 'Host: ' + uri.replace('https://', '');
     });
 
-    this.backendService = new gcp.compute.BackendService(
-      `${PREFIX}-backend-service`,
+    this.apiBackendService = new gcp.compute.BackendService(
+      `${PREFIX}-api-backend-service`,
       {
         protocol: 'HTTPS',
         loadBalancingScheme: 'EXTERNAL_MANAGED',
@@ -65,7 +77,28 @@ export class AppCmsModule
             group: this.serviceNeg.id,
           },
         ],
-        customRequestHeaders: [hostHeader],
+        customRequestHeaders: [apiHostHeader],
+      },
+      {
+        parent: this,
+      },
+    );
+
+    const uiHostHeader = this.uiService.uri.apply((uri) => {
+      return 'Host: ' + uri.replace('https://', '');
+    });
+
+    this.uiBackendService = new gcp.compute.BackendService(
+      `${PREFIX}-ui-backend-service`,
+      {
+        protocol: 'HTTPS',
+        loadBalancingScheme: 'EXTERNAL_MANAGED',
+        backends: [
+          {
+            group: this.serviceNeg.id,
+          },
+        ],
+        customRequestHeaders: [uiHostHeader],
       },
       {
         parent: this,
@@ -76,15 +109,20 @@ export class AppCmsModule
   pathRules() {
     return [
       {
+        paths: ['/app-cms/api', '/app-cms/api/*'],
+        service: this.apiBackendService.id,
+      },
+      {
         paths: ['/app-cms', '/app-cms/*'],
-        service: this.backendService.id,
+        service: this.uiBackendService.id,
       },
     ];
   }
 
   output() {
     return {
-      serviceName: this.service.name,
+      apiServiceName: this.apiService.name,
+      uiServiceName: this.uiService.name,
     };
   }
 }

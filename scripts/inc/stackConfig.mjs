@@ -341,10 +341,18 @@ async function initAppCmsConfig(configurator) {
     });
   });
 
-  await configurator.prompt('appCms:gcpRunService', async (currentValue) => {
+  await configurator.prompt('appCms:uiService', async (currentValue) => {
     return selectGcloudRunService({
       project: configurator.get('appCms:project'),
-      message: 'GCP Cloud Run service for App CMS:',
+      message: 'GCP Cloud Run service for App CMS UI:',
+      default: currentValue,
+    });
+  });
+
+  await configurator.prompt('appCms:apiService', async (currentValue) => {
+    return selectGcloudRunService({
+      project: configurator.get('appCms:project'),
+      message: 'GCP Cloud Run service for App CMS API:',
       default: currentValue,
     });
   });
