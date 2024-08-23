@@ -33,7 +33,7 @@ async function dnsInfo() {
     `${output.loadBalancer?.domain} -> ${output.loadBalancer?.ipAddress}`,
   ];
 
-  if (output.feedbackApi) {
+  if (output.feedbackApi?.domain && output.feedbackApi?.ipAddress) {
     records.push(
       `${output.feedbackApi?.domain} -> ${output.feedbackApi?.ipAddress}`,
     );
