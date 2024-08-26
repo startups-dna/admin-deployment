@@ -14,6 +14,7 @@ const config = new pulumi.Config();
 const companyName = config.require('companyName');
 const domain = config.require('domain');
 const ipName = config.require('ipName');
+const timeZone = config.get('timeZone') || 'UTC';
 const modules = config.getObject<ModulesConfig>('modules');
 
 export const globalConfig = {
@@ -21,6 +22,7 @@ export const globalConfig = {
   domain,
   ipName,
   modules,
+  timeZone,
   location,
   project,
 };

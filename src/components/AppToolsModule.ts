@@ -8,6 +8,25 @@ import { HasOutput, HasPathRules } from '../interfaces';
 const PREFIX = 'admin-app-tools';
 const DB_USER = 'admin-app-tools';
 const DB_NAME = 'admin-app-tools';
+const BASE_URL = '/app-tools';
+const API_BASE_URL = `${BASE_URL}/api`;
+
+type AppStoreConnectConfig = {
+  enabled: boolean;
+  keyId: string;
+  issuerId: string;
+  privateKeyFile: string;
+};
+
+type GooglePlayConfig = {
+  enabled: boolean;
+  serviceKeyFile: string;
+};
+
+type KeywordsConfig = {
+  enabled: boolean;
+  appTweakApiKey: string;
+};
 
 type ServiceEnvs = gcp.types.input.cloudrunv2.ServiceTemplateContainerEnv[];
 
@@ -19,6 +38,13 @@ export class AppToolsModule
   readonly service: gcp.cloudrunv2.Service;
   readonly serviceBackend: gcp.compute.BackendService;
   readonly dbJob: gcp.cloudrunv2.Job;
+  private readonly appStoreConnectConfig:
+    | pulumi.Output<AppStoreConnectConfig>
+    | undefined;
+  private readonly googlePlayConfig:
+    | pulumi.Output<GooglePlayConfig>
+    | undefined;
+  private readonly keywordsConfig: pulumi.Output<KeywordsConfig> | undefined;
 
   constructor(opts: pulumi.ComponentResourceOptions = {}) {
     super(`startupsdna:admin:${AppToolsModule.name}`, PREFIX, {}, opts);
@@ -37,20 +63,12 @@ export class AppToolsModule
       config.get('dbImage') ||
       'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/app-tools-db:0.3.0';
     const appStoreAppId = config.get('appStoreAppId');
-    type AppStoreConnectConfig = {
-      enabled: boolean;
-      keyId: string;
-      issuerId: string;
-      privateKeyFile: string;
-    };
-    const appStoreConnect =
+    this.appStoreConnectConfig =
       config.getSecretObject<AppStoreConnectConfig>('appStoreConnect');
     const googlePlayPackageName = config.get('googlePlayPackageName');
-    type GooglePlayConfig = {
-      enabled: boolean;
-      serviceKeyFile: string;
-    };
-    const googlePlay = config.getSecretObject<GooglePlayConfig>('googlePlay');
+    this.googlePlayConfig =
+      config.getSecretObject<GooglePlayConfig>('googlePlay');
+    this.keywordsConfig = config.getSecretObject<KeywordsConfig>('appTweak');
 
     new gcp.projects.Service(
       'androidpublisher-api',
@@ -98,7 +116,7 @@ export class AppToolsModule
       });
     }
 
-    const appStoreConnectEnvs = appStoreConnect?.apply<ServiceEnvs>(
+    const appStoreConnectEnvs = this.appStoreConnectConfig?.apply<ServiceEnvs>(
       (config) => {
         if (!config.enabled) {
           return [];
@@ -124,16 +142,12 @@ export class AppToolsModule
             value: 'true',
           },
           {
-            name: 'ADMIN_AUTH_PROJECT_ID',
-            value: globalConfig.project,
-          },
-          {
             name: 'APP_STORE_CONNECT_KEY_ID',
-            value: appStoreConnect.keyId,
+            value: config.keyId,
           },
           {
             name: 'APP_STORE_CONNECT_ISSUER_ID',
-            value: appStoreConnect.issuerId,
+            value: config.issuerId,
           },
           {
             name: 'APP_STORE_CONNECT_KEY',
@@ -145,35 +159,57 @@ export class AppToolsModule
       },
     );
 
-    const googlePlayEnvs = googlePlay?.apply<ServiceEnvs>((config) => {
+    const googlePlayEnvs = this.googlePlayConfig?.apply<ServiceEnvs>(
+      (config) => {
+        if (!config.enabled) {
+          return [];
+        }
+        if (!googlePlayPackageName || !config.serviceKeyFile) {
+          throw new pulumi.ResourceError(
+            'googlePlayPackageName, serviceKeyFile are required for Google Play integration',
+            this,
+            true,
+          );
+        }
+        const googlePlayServiceKey = JSON.parse(
+          fs.readFileSync(config.serviceKeyFile).toString(),
+        );
+        const envs: ServiceEnvs = [
+          {
+            name: 'GOOGLE_PLAY_ENABLED',
+            value: 'true',
+          },
+          {
+            name: 'GOOGLE_PLAY_CLIENT_EMAIL',
+            value: googlePlayServiceKey.client_email,
+          },
+          {
+            name: 'GOOGLE_PLAY_PRIVATE_KEY',
+            value: googlePlayServiceKey.private_key,
+          },
+        ];
+        return envs;
+      },
+    );
+
+    const keywordsEnvs = this.keywordsConfig?.apply<ServiceEnvs>((config) => {
       if (!config.enabled) {
         return [];
       }
-      if (!googlePlayPackageName || !config.serviceKeyFile) {
+      if (!config.appTweakApiKey) {
         throw new pulumi.ResourceError(
-          'googlePlayPackageName, serviceKeyFile are required for Google Play integration',
+          'appTools:appTweak.apiKey is required for AppTweak integration',
           this,
           true,
         );
       }
-      const googlePlayServiceKey = JSON.parse(
-        fs.readFileSync(config.serviceKeyFile).toString(),
-      );
-      const envs: ServiceEnvs = [
+
+      return [
         {
-          name: 'GOOGLE_PLAY_ENABLED',
-          value: 'true',
-        },
-        {
-          name: 'GOOGLE_PLAY_CLIENT_EMAIL',
-          value: googlePlayServiceKey.client_email,
-        },
-        {
-          name: 'GOOGLE_PLAY_PRIVATE_KEY',
-          value: googlePlayServiceKey.private_key,
+          name: 'APPTWEAK_API_KEY',
+          value: config.appTweakApiKey,
         },
       ];
-      return envs;
     });
 
     // Create a Cloud Run service definition.
@@ -186,30 +222,32 @@ export class AppToolsModule
             {
               image: serviceImage,
               envs: pulumi
-                .all([appStoreConnectEnvs, googlePlayEnvs])
-                .apply(([appStoreConnectEnvs, googlePlayEnvs]) => {
-                  return [
-                    ...serviceEnvs,
-                    ...this.database.serviceEnvs,
-                    ...(appStoreConnectEnvs || []),
-                    ...(googlePlayEnvs || []),
-                    {
-                      name: 'LOGGER',
-                      value: 'gcloud',
-                    },
-                    {
-                      name: 'LOGGER_NAME',
-                      value: 'app-tools',
-                    },
-                    {
-                      name: 'LOGGER_LEVEL',
-                      value: 'debug',
-                    },
-                  ];
-                }),
+                .all([appStoreConnectEnvs, googlePlayEnvs, keywordsEnvs])
+                .apply(
+                  ([appStoreConnectEnvs, googlePlayEnvs, keywordsEnvs]) => {
+                    return [
+                      ...serviceEnvs,
+                      ...this.database.serviceEnvs,
+                      ...(appStoreConnectEnvs || []),
+                      ...(googlePlayEnvs || []),
+                      ...(keywordsEnvs || []),
+                      {
+                        name: 'LOGGER',
+                        value: 'gcloud',
+                      },
+                      {
+                        name: 'LOGGER_NAME',
+                        value: 'app-tools',
+                      },
+                      {
+                        name: 'LOGGER_LEVEL',
+                        value: 'debug',
+                      },
+                    ];
+                  },
+                ),
               volumeMounts: [{ name: 'cloudsql', mountPath: '/cloudsql' }],
               resources: {
-                cpuIdle: false,
                 limits: {
                   memory,
                   cpu,
@@ -219,7 +257,6 @@ export class AppToolsModule
           ],
           maxInstanceRequestConcurrency: concurrency,
           scaling: {
-            minInstanceCount: 1,
             maxInstanceCount: 1,
           },
           volumes: [
@@ -283,6 +320,11 @@ export class AppToolsModule
       },
     );
 
+    this.createFeedbacksSyncJob();
+    this.createAppStoreSyncJobs();
+    this.createGooglePlaySyncJobs();
+    this.createKeywordsSyncJobs();
+
     const serviceNEG = new gcp.compute.RegionNetworkEndpointGroup(
       `${PREFIX}-neg`,
       {
@@ -327,5 +369,136 @@ export class AppToolsModule
         service: this.serviceBackend.id,
       },
     ];
+  }
+
+  private createFeedbacksSyncJob() {
+    new gcp.cloudscheduler.Job(
+      `${PREFIX}-feedbacks-sync-job`,
+      {
+        schedule: '*/30 * * * *',
+        timeZone: globalConfig.timeZone,
+        httpTarget: {
+          uri: `https://${globalConfig.domain}${API_BASE_URL}/feedbacks/sync`,
+          httpMethod: 'POST',
+        },
+      },
+      {
+        parent: this,
+      },
+    );
+  }
+
+  private createAppStoreSyncJobs() {
+    this.appStoreConnectConfig?.apply((config) => {
+      if (!config.enabled) {
+        return;
+      }
+
+      new gcp.cloudscheduler.Job(
+        `${PREFIX}-ratings-app-store-sync-job`,
+        {
+          schedule: '5 5 * * *',
+          timeZone: globalConfig.timeZone,
+          httpTarget: {
+            uri: `https://${globalConfig.domain}${API_BASE_URL}/ratings/app-store/sync`,
+            httpMethod: 'POST',
+          },
+        },
+        {
+          parent: this,
+        },
+      );
+
+      new gcp.cloudscheduler.Job(
+        `${PREFIX}-reviews-app-store-sync-job`,
+        {
+          schedule: '0 */6 * * *',
+          timeZone: globalConfig.timeZone,
+          httpTarget: {
+            uri: `https://${globalConfig.domain}${API_BASE_URL}/reviews/app-store/sync`,
+            httpMethod: 'POST',
+          },
+        },
+        {
+          parent: this,
+        },
+      );
+    });
+  }
+
+  private createGooglePlaySyncJobs() {
+    this.googlePlayConfig?.apply((config) => {
+      if (!config.enabled) {
+        return;
+      }
+
+      new gcp.cloudscheduler.Job(
+        `${PREFIX}-ratings-google-play-sync-job`,
+        {
+          schedule: '15 5 * * *',
+          timeZone: globalConfig.timeZone,
+          httpTarget: {
+            uri: `https://${globalConfig.domain}${API_BASE_URL}/ratings/google-play/sync`,
+            httpMethod: 'POST',
+          },
+        },
+        {
+          parent: this,
+        },
+      );
+
+      new gcp.cloudscheduler.Job(
+        `${PREFIX}-reviews-google-play-sync-job`,
+        {
+          schedule: '15 */6 * * *',
+          timeZone: globalConfig.timeZone,
+          httpTarget: {
+            uri: `https://${globalConfig.domain}${API_BASE_URL}/reviews/google-play/sync`,
+            httpMethod: 'POST',
+          },
+        },
+        {
+          parent: this,
+        },
+      );
+    });
+  }
+
+  private createKeywordsSyncJobs() {
+    this.keywordsConfig?.apply((config) => {
+      if (!config.enabled) {
+        return;
+      }
+
+      new gcp.cloudscheduler.Job(
+        `${PREFIX}-keywords-ranks-sync-job`,
+        {
+          schedule: '5 3 * * *',
+          timeZone: globalConfig.timeZone,
+          httpTarget: {
+            uri: `https://${globalConfig.domain}${API_BASE_URL}/keywords/sync/ranks`,
+            httpMethod: 'POST',
+          },
+        },
+        {
+          parent: this,
+        },
+      );
+
+      new gcp.cloudscheduler.Job(
+        `${PREFIX}-keywords-metrics-sync-job`,
+        {
+          schedule: '10 3 * * *',
+          timeZone: globalConfig.timeZone,
+          httpTarget: {
+            uri: `https://${globalConfig.domain}${API_BASE_URL}/keywords/sync/metrics`,
+            httpMethod: 'POST',
+          },
+        },
+        {
+          parent: this,
+        },
+      );
+    });
   }
 }

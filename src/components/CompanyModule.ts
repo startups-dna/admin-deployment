@@ -7,6 +7,8 @@ import { HasOutput, HasPathRules } from '../interfaces';
 const PREFIX = 'admin-company';
 const DB_USER = 'admin-company';
 const DB_NAME = 'admin-company';
+const BASE_URL = '/company';
+const API_BASE_URL = `${BASE_URL}/api`;
 
 type CompanyModuleArgs = {
   storageBucketName: pulumi.Input<string>;
@@ -120,10 +122,10 @@ export class CompanyModule
     );
 
     const jiraEnvs = [];
-    const condition =
+    const jiraEnabled =
       configJira?.token && configJira?.baseUrl && configJira?.email;
 
-    if (condition) {
+    if (jiraEnabled) {
       this.jiraTokenSecret = new gcp.secretmanager.Secret(
         `${PREFIX}-jira-token-secret`,
         {
@@ -204,7 +206,6 @@ export class CompanyModule
               ],
               volumeMounts: [{ name: 'cloudsql', mountPath: '/cloudsql' }],
               resources: {
-                cpuIdle: false,
                 limits: {
                   memory,
                   cpu,
@@ -214,7 +215,6 @@ export class CompanyModule
           ],
           maxInstanceRequestConcurrency: concurrency,
           scaling: {
-            minInstanceCount: 1,
             maxInstanceCount: 1,
           },
           volumes: [
@@ -273,6 +273,10 @@ export class CompanyModule
       },
     );
 
+    if (jiraEnabled) {
+      this.createStaffWorklogSyncJob();
+    }
+
     // Create an IAM member to allow the service to be publicly accessible.
     new gcp.cloudrun.IamMember(
       `${PREFIX}-service-invoker`,
@@ -326,9 +330,31 @@ export class CompanyModule
   pathRules() {
     return [
       {
-        paths: ['/company', '/company/*'],
+        paths: [BASE_URL, `${BASE_URL}/*`],
         service: this.serviceBackend.id,
       },
     ];
+  }
+
+  private createStaffWorklogSyncJob() {
+    new gcp.cloudscheduler.Job(
+      `${PREFIX}-staff-worklog-sync`,
+      {
+        schedule: '0 6,18 * * *',
+        timeZone: globalConfig.timeZone,
+        httpTarget: {
+          uri: `https://${globalConfig.domain}${API_BASE_URL}/staff-worklog/sync`,
+          httpMethod: 'POST',
+          oidcToken: {
+            serviceAccountEmail: gcp.compute
+              .getDefaultServiceAccount({})
+              .then(({ email }) => email),
+          },
+        },
+      },
+      {
+        parent: this,
+      },
+    );
   }
 }
