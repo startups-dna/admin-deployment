@@ -58,10 +58,10 @@ export class AppToolsModule
     const concurrency = config.getNumber('concurrency') || 80;
     const serviceImage =
       config.get('serviceImage') ||
-      'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/app-tools:0.3.0';
+      'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/app-tools:0.3.2';
     const dbImage =
       config.get('dbImage') ||
-      'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/app-tools-db:0.3.0';
+      'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/app-tools-db:0.3.2';
     const appStoreAppId = config.get('appStoreAppId');
     this.appStoreConnectConfig =
       config.getSecretObject<AppStoreConnectConfig>('appStoreConnect');

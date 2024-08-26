@@ -32,7 +32,7 @@ export class FeedbackApiModule
     const config = new pulumi.Config('feedbackApi');
     const serviceImage =
       config.get('serviceImage') ||
-      'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/feedback-api:0.3.0';
+      'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/feedback-api:0.3.2';
     this.domain = config.require('domain');
     const ipName = config.require('ipName');
 
