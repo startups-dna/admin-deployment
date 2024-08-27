@@ -1,17 +1,25 @@
 import * as pulumi from '@pulumi/pulumi';
 import * as gcp from '@pulumi/gcp';
+import { GoogleApisResources } from './GoogleApisResources';
 import { globalConfig } from '../config';
 import { HasOutput } from '../interfaces';
 
 const PREFIX = 'admin-core';
+
+type CoreModuleArgs = {
+  googleApis: GoogleApisResources;
+};
 
 export class CoreModule extends pulumi.ComponentResource implements HasOutput {
   service: gcp.cloudrunv2.Service;
   serviceBackend: gcp.compute.BackendService;
   serviceNeg: gcp.compute.RegionNetworkEndpointGroup;
 
-  constructor(opts: pulumi.ComponentResourceOptions = {}) {
-    super(`startupsdna:admin:${CoreModule.name}`, PREFIX, {}, opts);
+  constructor(
+    args: CoreModuleArgs,
+    opts: pulumi.ComponentResourceOptions = {},
+  ) {
+    super(`startupsdna:admin:${CoreModule.name}`, PREFIX, args, opts);
 
     // Read configuration
     const authConfig = new pulumi.Config('auth');
@@ -83,6 +91,7 @@ export class CoreModule extends pulumi.ComponentResource implements HasOutput {
         },
       },
       {
+        dependsOn: [args.googleApis.run],
         parent: this,
       },
     );

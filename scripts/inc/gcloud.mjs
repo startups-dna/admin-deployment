@@ -47,8 +47,6 @@ export async function checkGcloudServices() {
       const requiredServices = [
         'compute.googleapis.com',
         'sqladmin.googleapis.com',
-        'run.googleapis.com',
-        'secretmanager.googleapis.com',
       ];
 
       const missingServices = requiredServices.filter(

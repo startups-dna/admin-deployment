@@ -3,6 +3,7 @@ import * as gcp from '@pulumi/gcp';
 import * as random from '@pulumi/random';
 import { globalConfig } from '../config';
 import { HasOutput, HasPathRules } from '../interfaces';
+import { GoogleApisResources } from './GoogleApisResources';
 
 const PREFIX = 'admin-company';
 const DB_USER = 'admin-company';
@@ -11,6 +12,7 @@ const BASE_URL = '/company';
 const API_BASE_URL = `${BASE_URL}/api`;
 
 type CompanyModuleArgs = {
+  googleApis: GoogleApisResources;
   storageBucketName: pulumi.Input<string>;
 };
 
@@ -105,6 +107,7 @@ export class CompanyModule
         },
       },
       {
+        dependsOn: [args.googleApis.secretManager],
         parent: this,
       },
     );
@@ -117,6 +120,7 @@ export class CompanyModule
         secretData: dbUrl,
       },
       {
+        dependsOn: [args.googleApis.secretManager],
         parent: this,
       },
     );
@@ -135,6 +139,7 @@ export class CompanyModule
           },
         },
         {
+          dependsOn: [args.googleApis.secretManager],
           parent: this,
         },
       );
@@ -146,6 +151,7 @@ export class CompanyModule
           secretData: configJira.token,
         },
         {
+          dependsOn: [args.googleApis.secretManager],
           parent: this,
         },
       );
@@ -226,6 +232,7 @@ export class CompanyModule
         },
       },
       {
+        dependsOn: [args.googleApis.run],
         parent: this,
       },
     );
@@ -269,12 +276,13 @@ export class CompanyModule
         },
       },
       {
+        dependsOn: [args.googleApis.run],
         parent: this,
       },
     );
 
     if (jiraEnabled) {
-      this.createStaffWorklogSyncJob();
+      this.createStaffWorklogSyncJob(args);
     }
 
     // Create an IAM member to allow the service to be publicly accessible.
@@ -336,7 +344,7 @@ export class CompanyModule
     ];
   }
 
-  private createStaffWorklogSyncJob() {
+  private createStaffWorklogSyncJob(args: CompanyModuleArgs) {
     new gcp.cloudscheduler.Job(
       `${PREFIX}-staff-worklog-sync`,
       {
@@ -353,6 +361,7 @@ export class CompanyModule
         },
       },
       {
+        dependsOn: [args.googleApis.cloudScheduler],
         parent: this,
       },
     );

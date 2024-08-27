@@ -1,3 +1,4 @@
+import { GoogleApisResources } from './components/GoogleApisResources';
 import { ConfigAssets } from './components/ConfigAssets';
 import { StorageResources } from './components/StorageResources';
 import { LoadBalancer } from './components/LoadBalancer';
@@ -9,10 +10,12 @@ import { FeedbackApiModule } from './components/FeedbackApiModule';
 import { AppCmsModule } from './components/AppCmsModule';
 import { globalConfig } from './config';
 
+const googleApis = new GoogleApisResources();
 const storage = new StorageResources();
 const configAssets = new ConfigAssets();
-const coreModule = new CoreModule();
+const coreModule = new CoreModule({ googleApis });
 const companyModule = new CompanyModule({
+  googleApis,
   storageBucketName: storage.bucket.name,
 });
 const configuratorModule = new ConfiguratorModule({
@@ -28,8 +31,9 @@ adminLb.addPathRules(companyModule.pathRules());
 let appToolsModule: AppToolsModule | undefined;
 let feedbackApiModule: FeedbackApiModule | undefined;
 if (globalConfig.modules?.appTools) {
-  appToolsModule = new AppToolsModule();
+  appToolsModule = new AppToolsModule({ googleApis });
   feedbackApiModule = new FeedbackApiModule({
+    googleApis,
     database: appToolsModule.database,
   });
   adminLb.addPathRules(appToolsModule.pathRules());

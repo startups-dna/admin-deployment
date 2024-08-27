@@ -2,11 +2,13 @@ import * as pulumi from '@pulumi/pulumi';
 import * as gcp from '@pulumi/gcp';
 import { globalConfig } from '../config';
 import { DatabaseResources } from './DatabaseResources';
+import { GoogleApisResources } from './GoogleApisResources';
 import { HasOutput } from '../interfaces';
 
 const PREFIX = 'feedback-api';
 
 type FeedbackApiModuleArgs = {
+  googleApis: GoogleApisResources;
   database: DatabaseResources;
 };
 
@@ -86,6 +88,7 @@ export class FeedbackApiModule
         },
       },
       {
+        dependsOn: [args.googleApis.run],
         parent: this,
       },
     );

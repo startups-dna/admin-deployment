@@ -4,12 +4,17 @@ import * as fs from 'node:fs';
 import { globalConfig } from '../config';
 import { DatabaseResources } from './DatabaseResources';
 import { HasOutput, HasPathRules } from '../interfaces';
+import { GoogleApisResources } from './GoogleApisResources';
 
 const PREFIX = 'admin-app-tools';
 const DB_USER = 'admin-app-tools';
 const DB_NAME = 'admin-app-tools';
 const BASE_URL = '/app-tools';
 const API_BASE_URL = `${BASE_URL}/api`;
+
+type AppToolsModuleArgs = {
+  googleApis: GoogleApisResources;
+};
 
 type AppStoreConnectConfig = {
   enabled: boolean;
@@ -46,8 +51,11 @@ export class AppToolsModule
     | undefined;
   private readonly keywordsConfig: pulumi.Output<KeywordsConfig> | undefined;
 
-  constructor(opts: pulumi.ComponentResourceOptions = {}) {
-    super(`startupsdna:admin:${AppToolsModule.name}`, PREFIX, {}, opts);
+  constructor(
+    args: AppToolsModuleArgs,
+    opts: pulumi.ComponentResourceOptions = {},
+  ) {
+    super(`startupsdna:admin:${AppToolsModule.name}`, PREFIX, args, opts);
 
     const authConfig = new pulumi.Config('auth');
     const authTenantId = authConfig.get('tenantId');
@@ -270,6 +278,7 @@ export class AppToolsModule
         },
       },
       {
+        dependsOn: [args.googleApis.run],
         parent: this,
       },
     );
@@ -303,6 +312,7 @@ export class AppToolsModule
         },
       },
       {
+        dependsOn: [args.googleApis.run],
         parent: this,
       },
     );
@@ -320,10 +330,10 @@ export class AppToolsModule
       },
     );
 
-    this.createFeedbacksSyncJob();
-    this.createAppStoreSyncJobs();
-    this.createGooglePlaySyncJobs();
-    this.createKeywordsSyncJobs();
+    this.createFeedbacksSyncJob(args);
+    this.createAppStoreSyncJobs(args);
+    this.createGooglePlaySyncJobs(args);
+    this.createKeywordsSyncJobs(args);
 
     const serviceNEG = new gcp.compute.RegionNetworkEndpointGroup(
       `${PREFIX}-neg`,
@@ -371,7 +381,7 @@ export class AppToolsModule
     ];
   }
 
-  private createFeedbacksSyncJob() {
+  private createFeedbacksSyncJob(args: AppToolsModuleArgs) {
     new gcp.cloudscheduler.Job(
       `${PREFIX}-feedbacks-sync-job`,
       {
@@ -383,12 +393,13 @@ export class AppToolsModule
         },
       },
       {
+        dependsOn: [args.googleApis.cloudScheduler],
         parent: this,
       },
     );
   }
 
-  private createAppStoreSyncJobs() {
+  private createAppStoreSyncJobs(args: AppToolsModuleArgs) {
     this.appStoreConnectConfig?.apply((config) => {
       if (!config.enabled) {
         return;
@@ -405,6 +416,7 @@ export class AppToolsModule
           },
         },
         {
+          dependsOn: [args.googleApis.cloudScheduler],
           parent: this,
         },
       );
@@ -420,13 +432,14 @@ export class AppToolsModule
           },
         },
         {
+          dependsOn: [args.googleApis.cloudScheduler],
           parent: this,
         },
       );
     });
   }
 
-  private createGooglePlaySyncJobs() {
+  private createGooglePlaySyncJobs(args: AppToolsModuleArgs) {
     this.googlePlayConfig?.apply((config) => {
       if (!config.enabled) {
         return;
@@ -443,6 +456,7 @@ export class AppToolsModule
           },
         },
         {
+          dependsOn: [args.googleApis.cloudScheduler],
           parent: this,
         },
       );
@@ -458,13 +472,14 @@ export class AppToolsModule
           },
         },
         {
+          dependsOn: [args.googleApis.cloudScheduler],
           parent: this,
         },
       );
     });
   }
 
-  private createKeywordsSyncJobs() {
+  private createKeywordsSyncJobs(args: AppToolsModuleArgs) {
     this.keywordsConfig?.apply((config) => {
       if (!config.enabled) {
         return;
@@ -481,6 +496,7 @@ export class AppToolsModule
           },
         },
         {
+          dependsOn: [args.googleApis.cloudScheduler],
           parent: this,
         },
       );
@@ -496,6 +512,7 @@ export class AppToolsModule
           },
         },
         {
+          dependsOn: [args.googleApis.cloudScheduler],
           parent: this,
         },
       );
