@@ -16,6 +16,7 @@ const domain = config.require('domain');
 const ipName = config.require('ipName');
 const timeZone = config.get('timeZone') || 'UTC';
 const modules = config.getObject<ModulesConfig>('modules');
+const importMode = config.getBoolean('importMode') || false;
 
 export const globalConfig = {
   companyName,
@@ -23,6 +24,7 @@ export const globalConfig = {
   ipName,
   modules,
   timeZone,
+  importMode,
   location,
   project,
 };

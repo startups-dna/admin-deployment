@@ -1,6 +1,7 @@
 import * as pulumi from '@pulumi/pulumi';
 import * as gcp from '@pulumi/gcp';
 import * as random from '@pulumi/random';
+import { globalConfig } from '../config';
 
 type DatabaseComponentArgs = {
   instanceId: pulumi.Input<string>;
@@ -44,6 +45,9 @@ export class DatabaseResources {
         instance: this.sqlInstance.name,
       },
       {
+        import: globalConfig.importMode
+          ? args.instanceId + '/' + args.dbName
+          : undefined,
         retainOnDelete: true,
         parent,
       },

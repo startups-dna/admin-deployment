@@ -5,15 +5,19 @@ export class StorageResources {
   readonly bucket: gcp.storage.Bucket;
 
   constructor() {
+    const bucketName = `${globalConfig.project}-storage`;
     this.bucket = new gcp.storage.Bucket(
       'admin-storage-bucket',
       {
-        name: `${globalConfig.project}-storage`,
+        name: bucketName,
         location: globalConfig.location,
         storageClass: 'STANDARD',
         uniformBucketLevelAccess: true,
       },
-      { retainOnDelete: true },
+      {
+        import: globalConfig.importMode ? bucketName : undefined,
+        retainOnDelete: true,
+      },
     );
   }
 }
