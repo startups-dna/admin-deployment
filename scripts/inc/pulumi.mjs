@@ -4,6 +4,11 @@ import ora, { oraPromise } from 'ora';
 import { DEFAULT_STACK, PULUMI_PROJECT } from './constants.mjs';
 import { echo } from './echo.mjs';
 import { getStateBucketId } from './stateBucket.mjs';
+import {
+  initKmsKey,
+  getGcpDefaultProject,
+  getGcpDefaultRegion,
+} from './gcloud.mjs';
 
 export async function checkPulumiCli() {
   const o = ora().start('Checking pulumi CLI...');
@@ -55,10 +60,22 @@ export async function checkPulumiStack() {
 }
 
 export async function initStack(stackName) {
-  await oraPromise(async () => await execa`pulumi stack init ${stackName}`, {
-    text: `Initializing Pulumi stack [${stackName}]...`,
-    successText: `Pulumi stack [${stackName}] initialized.`,
-  });
+  await oraPromise(
+    async () => {
+      const kmsKey = await initKmsKey({
+        project: getGcpDefaultProject(),
+        location: getGcpDefaultRegion(),
+        keyRing: 'pulumi',
+        key: stackName,
+      });
+      const secretsProvider = `gcpkms://${kmsKey}`;
+      await execa`pulumi stack init ${stackName} --secrets-provider=${secretsProvider}`;
+    },
+    {
+      text: `Initializing Pulumi stack [${stackName}]...`,
+      successText: `Pulumi stack [${stackName}] initialized.`,
+    },
+  );
 }
 
 export async function getPulumiStackConfig() {

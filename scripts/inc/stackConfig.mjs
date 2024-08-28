@@ -150,13 +150,16 @@ export async function initStackConfig() {
       });
     });
 
-    await configurator.prompt('company:jira.token', async (currentValue) => {
-      return input({
-        message: 'Enter jira token:',
-        default: currentValue,
-        validate: (value) => !!value || 'Value is required',
-      });
-    });
+    await configurator.promptSecret(
+      'company:jira.token',
+      async (currentValue) => {
+        return input({
+          message: 'Enter jira token:',
+          default: currentValue,
+          validate: (value) => !!value || 'Value is required',
+        });
+      },
+    );
 
     await configurator.prompt('company:jira.email', async (currentValue) => {
       return input({

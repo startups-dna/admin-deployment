@@ -13,7 +13,6 @@
     "dotenv": "^16.4.5",
     "execa": "^9.3.0",
     "figures": "^6.1.0",
-    "generate-password": "^1.7.1",
     "get-value": "^3.0.1",
     "ora": "^8.0.1",
     "set-value": "^4.1.0",

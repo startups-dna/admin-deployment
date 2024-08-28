@@ -46,6 +46,7 @@ export async function checkGcloudServices() {
 
       const requiredServices = [
         'compute.googleapis.com',
+        'cloudkms.googleapis.com',
         'sqladmin.googleapis.com',
       ];
 
@@ -253,6 +254,40 @@ export async function selectGcloudRunService(opts = {}) {
       };
     }),
   });
+}
+
+export async function initKmsKey({ project, location, keyRing, key }) {
+  const keyRingName = `projects/${project}/locations/${location}/keyRings/${keyRing}`;
+  const keyName = `${keyRingName}/cryptoKeys/${key}`;
+
+  await oraPromise(
+    async (o) => {
+      const keyRings =
+        await execa`gcloud kms keyrings list --location=${location} --project=${project} --format=${'value(name)'}`.then(
+          ({ stdout }) => stdout.split('\n'),
+        );
+
+      if (!keyRings.includes(keyRingName)) {
+        await execa`gcloud kms keyrings create ${keyRing} --location=${location} --project=${project}`;
+      }
+
+      const keys =
+        await execa`gcloud kms keys list --location=${location} --keyring=${keyRing} --project=${project} --format=${'value(name)'}`.then(
+          ({ stdout }) => stdout.split('\n'),
+        );
+
+      if (!keys.includes(keyName)) {
+        await execa`gcloud kms keys create ${key} --keyring=${keyRing} --location=${location} --purpose=encryption --project=${project}`;
+      }
+
+      o.text = `KMS key initialized: ${keyName}`;
+    },
+    {
+      text: 'Initializing KMS key...',
+    },
+  );
+
+  return keyName;
 }
 
 export async function createServiceAccountKey({ gcpProject, serviceAccount }) {
