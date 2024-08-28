@@ -79,6 +79,9 @@ export class CompanyModule
         instance: this.dbInstance.name,
       },
       {
+        import: globalConfig.importMode
+          ? sqlInstanceName + '/' + DB_NAME
+          : undefined,
         retainOnDelete: true,
         parent: this,
       },
