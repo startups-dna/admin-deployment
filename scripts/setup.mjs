@@ -1,6 +1,5 @@
 import { existsSync, writeFileSync } from 'node:fs';
 import { configDotenv, parse } from 'dotenv';
-import generatePassword from 'generate-password';
 import { readFileSync } from 'fs';
 import chalk from 'chalk';
 import { execa } from 'execa';
@@ -48,19 +47,6 @@ async function initEnv() {
     });
     envContents += `\nGOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT}`;
     hasChanges = true;
-  }
-
-  if (!env['PULUMI_CONFIG_PASSPHRASE']) {
-    const PULUMI_CONFIG_PASSPHRASE = generatePassword.generate({
-      length: 16,
-      symbols: true,
-      numbers: true,
-    });
-    envContents += `\nPULUMI_CONFIG_PASSPHRASE="${PULUMI_CONFIG_PASSPHRASE}"`;
-    hasChanges = true;
-    echo.info(
-      `Generated new Pulumi passphrase. It will be stored in .env file.`,
-    );
   }
 
   // write new config if changes were made
