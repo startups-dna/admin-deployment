@@ -101,7 +101,12 @@ export class AppToolsModule
       },
     );
 
-    const serviceEnvs: ServiceEnvs = [];
+    const serviceEnvs: ServiceEnvs = [
+      {
+        name: 'ADMIN_AUTH_PROJECT_ID',
+        value: globalConfig.project,
+      },
+    ];
 
     if (authTenantId) {
       serviceEnvs.push({
