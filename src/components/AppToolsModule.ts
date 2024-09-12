@@ -5,6 +5,7 @@ import { globalConfig } from '../config';
 import { DatabaseResources } from './DatabaseResources';
 import { HasOutput, HasPathRules } from '../interfaces';
 import { GoogleApisResources } from './GoogleApisResources';
+import { SecretResources } from './SecretResources';
 
 const PREFIX = 'admin-app-tools';
 const DB_USER = 'admin-app-tools';
@@ -20,12 +21,12 @@ type AppStoreConnectConfig = {
   enabled: boolean;
   keyId: string;
   issuerId: string;
-  privateKeyFile: string;
+  privateKey: string;
 };
 
 type GooglePlayConfig = {
   enabled: boolean;
-  serviceKeyFile: string;
+  serviceAccountKey: string;
 };
 
 type KeywordsConfig = {
@@ -138,17 +139,25 @@ export class AppToolsModule
           !appStoreAppId ||
           !config.keyId ||
           !config.issuerId ||
-          !config.privateKeyFile
+          !config.privateKey
         ) {
           throw new pulumi.ResourceError(
-            'appStoreAppId, keyId, issuerId, privateKeyFile are required for AppStore Connect',
+            'appStoreAppId, keyId, issuerId, privateKey are required for AppStore Connect',
             this,
             true,
           );
         }
-        const appStoreConnectPrivateKey = fs
-          .readFileSync(config.privateKeyFile)
-          .toString();
+
+        const privateKey = new SecretResources(
+          'app-store-connect-private-key',
+          {
+            data: config.privateKey,
+          },
+          {
+            parent: this,
+          },
+        );
+
         const envs: ServiceEnvs = [
           {
             name: 'APP_STORE_ENABLED',
@@ -164,7 +173,7 @@ export class AppToolsModule
           },
           {
             name: 'APP_STORE_CONNECT_KEY',
-            value: appStoreConnectPrivateKey,
+            valueSource: privateKey.envValueSource(),
           },
         ];
 
@@ -177,16 +186,27 @@ export class AppToolsModule
         if (!config.enabled) {
           return [];
         }
-        if (!googlePlayPackageName || !config.serviceKeyFile) {
+
+        if (!googlePlayPackageName || !config.serviceAccountKey) {
           throw new pulumi.ResourceError(
-            'googlePlayPackageName, serviceKeyFile are required for Google Play integration',
+            'googlePlayPackageName, serviceAccountKey are required for Google Play integration',
             this,
             true,
           );
         }
-        const googlePlayServiceKey = JSON.parse(
-          fs.readFileSync(config.serviceKeyFile).toString(),
+
+        const serviceAccountKey = JSON.parse(config.serviceAccountKey);
+
+        const privateKey = new SecretResources(
+          'google-play-private-key',
+          {
+            data: serviceAccountKey.private_key,
+          },
+          {
+            parent: this,
+          },
         );
+
         const envs: ServiceEnvs = [
           {
             name: 'GOOGLE_PLAY_ENABLED',
@@ -194,13 +214,14 @@ export class AppToolsModule
           },
           {
             name: 'GOOGLE_PLAY_CLIENT_EMAIL',
-            value: googlePlayServiceKey.client_email,
+            value: serviceAccountKey.client_email,
           },
           {
             name: 'GOOGLE_PLAY_PRIVATE_KEY',
-            value: googlePlayServiceKey.private_key,
+            valueSource: privateKey.envValueSource(),
           },
         ];
+
         return envs;
       },
     );

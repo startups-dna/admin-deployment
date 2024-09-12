@@ -1,4 +1,4 @@
-import { confirm, input } from '@inquirer/prompts';
+import { confirm, editor, input } from '@inquirer/prompts';
 import chalk from 'chalk';
 import getValue from 'get-value';
 import setValue from 'set-value';
@@ -235,13 +235,6 @@ async function initAppToolsConfig(configurator) {
     });
   });
 
-  await configurator.prompt('appTools:appStoreAppId', async (currentValue) => {
-    return input({
-      message: 'Enter App Store App ID:',
-      default: currentValue,
-    });
-  });
-
   await configurator.prompt(
     'appTools:appStoreConnect.enabled',
     async (currentValue) => {
@@ -253,6 +246,15 @@ async function initAppToolsConfig(configurator) {
   );
 
   if (configurator.get('appTools:appStoreConnect.enabled')) {
+    await configurator.prompt(
+      'appTools:appStoreAppId',
+      async (currentValue) => {
+        return input({
+          message: 'Enter App Store App ID:',
+          default: currentValue,
+        });
+      },
+    );
     await configurator.promptSecret(
       'appTools:appStoreConnect.issuerId',
       async (currentValue) => {
@@ -273,28 +275,16 @@ async function initAppToolsConfig(configurator) {
         });
       },
     );
-    await configurator.prompt(
-      'appTools:appStoreConnect.privateKeyFile',
-      async (currentValue) => {
-        const relative = chalk.grey('(relative to ' + process.cwd() + ')');
-        return input({
-          message: `Choose App Store Connect Private Key file ${relative}:`,
-          default: currentValue,
+    await configurator.promptSecret(
+      'appTools:appStoreConnect.privateKey',
+      async () => {
+        return editor({
+          message: `Enter App Store Connect Private Key:`,
           validate: (value) => !!value || 'Value is required',
         });
       },
     );
   }
-
-  await configurator.prompt(
-    'appTools:googlePlayPackageName',
-    async (currentValue) => {
-      return input({
-        message: 'Enter Google Play Package Name:',
-        default: currentValue,
-      });
-    },
-  );
 
   await configurator.prompt(
     'appTools:googlePlay.enabled',
@@ -308,11 +298,20 @@ async function initAppToolsConfig(configurator) {
 
   if (configurator.get('appTools:googlePlay.enabled')) {
     await configurator.prompt(
-      'appTools:googlePlay.serviceKeyFile',
+      'appTools:googlePlayPackageName',
       async (currentValue) => {
-        const relative = chalk.grey('(relative to ' + process.cwd() + ')');
         return input({
-          message: `Choose Google Play Service Account Key file ${relative}:`,
+          message: 'Enter Google Play Package Name:',
+          default: currentValue,
+          validate: (value) => !!value || 'Value is required',
+        });
+      },
+    );
+    await configurator.promptSecret(
+      'appTools:googlePlay.serviceAccountKey',
+      async (currentValue) => {
+        return editor({
+          message: `Enter Google Play Service Account Key (JSON):`,
           default: currentValue,
           validate: (value) => !!value || 'Value is required',
         });

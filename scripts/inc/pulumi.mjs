@@ -85,9 +85,9 @@ export async function getPulumiStackConfig() {
 }
 
 export async function pulumiConfigSet(key, value, isSecret = false) {
-  return execa`pulumi config set ${
+  return execa({ input: value })`pulumi config set ${
     isSecret ? '--secret' : '--plaintext'
-  } --path ${key} ${String(value)}`;
+  } --path ${key}`;
 }
 
 export async function pulumiConfigRm(key) {
