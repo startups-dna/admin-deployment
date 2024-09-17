@@ -26,7 +26,7 @@ export class ConfiguratorModule
     const authConfig = new pulumi.Config('auth');
     const authTenantId = authConfig.get('tenantId');
     const serviceImage =
-      'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/configurator:0.3.2';
+      'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/configurator:0.4.0';
 
     // Create a Cloud Run service definition.
     this.service = new gcp.cloudrunv2.Service(
