@@ -4,7 +4,6 @@ import { readFileSync } from 'fs';
 import chalk from 'chalk';
 import { execa } from 'execa';
 import { confirm } from '@inquirer/prompts';
-import { handleError } from './inc/common.mjs';
 import {
   checkGCloudCli,
   checkGcloudServices,
@@ -16,11 +15,11 @@ import {
   selectGcloudProject,
   selectGcloudRegion,
   setGcloudServiceRoles,
-} from './inc/gcloud.mjs';
-import { checkStateBucket } from './inc/stateBucket.mjs';
-import { echo } from './inc/echo.mjs';
+} from '../inc/gcloud.mjs';
+import { checkStateBucket } from '../inc/stateBucket.mjs';
+import { echo } from '../inc/echo.mjs';
 
-async function main() {
+export async function setup() {
   await checkGCloudCli();
   await gcloudAuth();
   await initEnv();
@@ -145,5 +144,3 @@ async function requestAccessInfo() {
     `service-${projectNumber}@serverless-robot-prod.iam.gserviceaccount.com`,
   );
 }
-
-main().catch(handleError);

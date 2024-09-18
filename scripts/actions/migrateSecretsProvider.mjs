@@ -1,23 +1,23 @@
 import { configDotenv } from 'dotenv';
-import { handleError } from './inc/common.mjs';
+import { handleError } from '../inc/common.mjs';
 import {
   checkGCloudCli,
   gcloudAuth,
   getGcpDefaultProject,
   getGcpDefaultRegion,
   initKmsKey,
-} from './inc/gcloud.mjs';
+} from '../inc/gcloud.mjs';
 import {
   checkPulumiCli,
   checkPulumiStack,
   pulumiLogin,
-} from './inc/pulumi.mjs';
-import { echo } from './inc/echo.mjs';
+} from '../inc/pulumi.mjs';
+import { echo } from '../inc/echo.mjs';
 import { execa } from 'execa';
 
 configDotenv({ override: true });
 
-async function main() {
+export async function migrateSecretsProvider() {
   await checkGCloudCli();
   await checkPulumiCli();
   await gcloudAuth();
@@ -36,5 +36,3 @@ async function main() {
   await execa`pulumi stack change-secrets-provider ${secretsProvider}`;
   echo.success(`Secrets provider changed successfully.`);
 }
-
-main().catch(handleError);

@@ -1,21 +1,17 @@
-import { configDotenv } from 'dotenv';
 import { execa } from 'execa';
 import chalk from 'chalk';
 import { confirm, input } from '@inquirer/prompts';
-import { echo } from './inc/echo.mjs';
-import { handleError } from './inc/common.mjs';
-import { checkGCloudCli, gcloudAuth } from './inc/gcloud.mjs';
+import { echo } from '../inc/echo.mjs';
+import { checkGCloudCli, gcloudAuth } from '../inc/gcloud.mjs';
 import {
   checkPulumiCli,
   checkPulumiStack,
   getPulumiStackConfig,
   getPulumiStackOutput,
   pulumiLogin,
-} from './inc/pulumi.mjs';
+} from '../inc/pulumi.mjs';
 
-configDotenv({ override: true });
-
-async function main() {
+export async function initAdmin() {
   await checkGCloudCli();
   await checkPulumiCli();
   await gcloudAuth();
@@ -90,5 +86,3 @@ class ConfiguratorApi {
     });
   }
 }
-
-main().catch(handleError);

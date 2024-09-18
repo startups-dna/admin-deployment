@@ -19,14 +19,8 @@ import {
   pulumiConfigSet,
 } from './pulumi.mjs';
 
-export function isConfigAlterMode() {
-  // read '--alter' flag from command line
-  return process.argv.includes('--alter');
-}
-
-export async function initStackConfig() {
+export async function initStackConfig(alterMode) {
   echo.log('Setting up stack configuration...');
-  const alterMode = isConfigAlterMode();
   const configurator = new StackConfigurator(alterMode);
   await configurator.load();
 
@@ -134,6 +128,13 @@ export async function initStackConfig() {
     });
   });
 
+  await initAppToolsConfig(configurator);
+  await initAppCmsConfig(configurator);
+
+  echo.success('Stack configuration done.');
+}
+
+async function initJiraConfig(configurator) {
   await configurator.prompt('company:jira.enabled', async (currentValue) => {
     return confirm({
       message: 'Enable jira integration?',
@@ -141,40 +142,37 @@ export async function initStackConfig() {
     });
   });
 
-  if (configurator.get('company:jira.enabled')) {
-    await configurator.prompt('company:jira.baseUrl', async (currentValue) => {
-      return input({
-        message: 'Enter jira base url:',
-        default: currentValue,
-        validate: (value) => !!value || 'Value is required',
-      });
-    });
-
-    await configurator.promptSecret(
-      'company:jira.token',
-      async (currentValue) => {
-        return input({
-          message: 'Enter jira token:',
-          default: currentValue,
-          validate: (value) => !!value || 'Value is required',
-        });
-      },
-    );
-
-    await configurator.prompt('company:jira.email', async (currentValue) => {
-      return input({
-        message:
-          'Enter the jira email address where you received your jira token:',
-        default: currentValue,
-        validate: (value) => !!value || 'Value is required',
-      });
-    });
+  if (!configurator.get('company:jira.enabled')) {
+    return;
   }
 
-  await initAppToolsConfig(configurator);
-  await initAppCmsConfig(configurator);
+  await configurator.prompt('company:jira.baseUrl', async (currentValue) => {
+    return input({
+      message: 'Enter jira base url:',
+      default: currentValue,
+      validate: (value) => !!value || 'Value is required',
+    });
+  });
 
-  echo.success('Stack configuration done.');
+  await configurator.promptSecret(
+    'company:jira.token',
+    async (currentValue) => {
+      return input({
+        message: 'Enter jira token:',
+        default: currentValue,
+        validate: (value) => !!value || 'Value is required',
+      });
+    },
+  );
+
+  await configurator.prompt('company:jira.email', async (currentValue) => {
+    return input({
+      message:
+        'Enter the jira email address where you received your jira token:',
+      default: currentValue,
+      validate: (value) => !!value || 'Value is required',
+    });
+  });
 }
 
 async function initAppToolsConfig(configurator) {
