@@ -1,3 +1,12 @@
+## Pre-requisites
+
+Requirements:
+
+- Node.js 18 or above;
+- npm 10 or above;
+- Google Cloud SDK;
+- Pulumi CLI;
+
 ## Install
 
 ```bash
