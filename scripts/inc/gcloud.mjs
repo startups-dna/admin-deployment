@@ -8,7 +8,7 @@ import { echo } from './echo.mjs';
 export async function checkGCloudCli() {
   const o = ora().start('Checking gcloud CLI...');
   try {
-    await $`gcloud --version`;
+    await execa`gcloud --version`;
     o.succeed('gcloud CLI is installed.');
   } catch (e) {
     o.fail('gcloud CLI is not installed.');
@@ -24,14 +24,14 @@ export async function gcloudAuth() {
   const o = ora().start('Authenticating gcloud...');
   try {
     const { stdout } =
-      await $`gcloud auth application-default print-access-token`;
+      await execa`gcloud auth application-default print-access-token`;
     if (!stdout) {
       throw new Error('no access token');
     }
     o.succeed('gcloud is authenticated.');
   } catch (e) {
     o.warn('gcloud authentication is required to proceed');
-    await $`gcloud auth application-default login`;
+    await execa`gcloud auth application-default login`;
   }
 }
 
