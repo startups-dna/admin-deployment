@@ -11,7 +11,7 @@ import {
   pulumiLogin,
 } from '../inc/pulumi.mjs';
 
-export async function initAdmin() {
+export async function initAdminAction() {
   await checkGCloudCli();
   await checkPulumiCli();
   await gcloudAuth();

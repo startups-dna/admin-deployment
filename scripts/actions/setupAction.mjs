@@ -19,7 +19,7 @@ import {
 import { checkStateBucket } from '../inc/stateBucket.mjs';
 import { echo } from '../inc/echo.mjs';
 
-export async function setup() {
+export async function setupAction() {
   await checkGCloudCli();
   await gcloudAuth();
   await initEnv();

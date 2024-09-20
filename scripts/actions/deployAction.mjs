@@ -6,12 +6,18 @@ import {
   pulumiLogin,
   pulumiUp,
 } from '../inc/pulumi.mjs';
-import { initStackConfig } from '../inc/stackConfig.mjs';
+import {
+  promptAppCmsConfig,
+  promptAppToolsConfig,
+  promptJiraConfig,
+  promptMainConfig,
+  StackConfigurator,
+} from '../inc/stackConfig.mjs';
 import { runMigrations } from '../inc/migrations.mjs';
 import { echo } from '../inc/echo.mjs';
 import chalk from 'chalk';
 
-export async function deploy() {
+export async function deployAction() {
   await checkGCloudCli();
   await checkPulumiCli();
   await gcloudAuth();
@@ -21,6 +27,25 @@ export async function deploy() {
   await pulumiUp();
   await runMigrations();
   await dnsInfo();
+}
+
+export async function initStackConfig(alterMode) {
+  echo.log('Setting up stack configuration...');
+  const configurator = await StackConfigurator.create(alterMode);
+
+  echo.log('Current stack configuration:');
+  console.log('- GCP project:', chalk.bold(configurator.get('gcp:project')));
+  console.log(
+    '- GCP default region:',
+    chalk.bold(configurator.get('gcp:region')),
+  );
+
+  await promptMainConfig(configurator);
+  await promptJiraConfig(configurator);
+  await promptAppToolsConfig(configurator);
+  await promptAppCmsConfig(configurator);
+
+  echo.success('Stack configuration done.');
 }
 
 async function dnsInfo() {

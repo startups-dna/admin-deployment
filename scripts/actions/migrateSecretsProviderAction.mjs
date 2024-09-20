@@ -17,7 +17,7 @@ import { execa } from 'execa';
 
 configDotenv({ override: true });
 
-export async function migrateSecretsProvider() {
+export async function migrateSecretsProviderAction() {
   await checkGCloudCli();
   await checkPulumiCli();
   await gcloudAuth();
