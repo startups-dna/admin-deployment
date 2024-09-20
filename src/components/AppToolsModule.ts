@@ -1,6 +1,5 @@
 import * as pulumi from '@pulumi/pulumi';
 import * as gcp from '@pulumi/gcp';
-import * as fs from 'node:fs';
 import { globalConfig } from '../config';
 import { DatabaseResources } from './DatabaseResources';
 import { HasOutput, HasPathRules } from '../interfaces';
@@ -15,6 +14,7 @@ const API_BASE_URL = `${BASE_URL}/api`;
 
 type AppToolsModuleArgs = {
   googleApis: GoogleApisResources;
+  storageBucketName: pulumi.Input<string>;
 };
 
 type AppStoreConnectConfig = {
@@ -106,6 +106,10 @@ export class AppToolsModule
       {
         name: 'ADMIN_AUTH_PROJECT_ID',
         value: globalConfig.project,
+      },
+      {
+        name: 'FIREBASE_BUCKET_NAME',
+        value: args.storageBucketName,
       },
     ];
 

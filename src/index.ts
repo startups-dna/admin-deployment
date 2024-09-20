@@ -30,8 +30,13 @@ adminLb.addPathRules(companyModule.pathRules());
 
 let appToolsModule: AppToolsModule | undefined;
 let feedbackApiModule: FeedbackApiModule | undefined;
+
 if (globalConfig.modules?.appTools) {
-  appToolsModule = new AppToolsModule({ googleApis });
+  appToolsModule = new AppToolsModule({
+    googleApis,
+    storageBucketName: storage.bucket.name,
+  });
+
   feedbackApiModule = new FeedbackApiModule({
     googleApis,
     database: appToolsModule.database,
