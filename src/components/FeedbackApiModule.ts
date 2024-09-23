@@ -4,6 +4,7 @@ import { globalConfig } from '../config';
 import { DatabaseResources } from './DatabaseResources';
 import { GoogleApisResources } from './GoogleApisResources';
 import { HasOutput } from '../interfaces';
+import { MODULE_VERSIONS } from '../constants';
 
 const PREFIX = 'feedback-api';
 
@@ -34,7 +35,7 @@ export class FeedbackApiModule
     const config = new pulumi.Config('feedbackApi');
     const serviceImage =
       config.get('serviceImage') ||
-      'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/feedback-api:0.4.0';
+      `europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/feedback-api:${MODULE_VERSIONS.appTools}`;
     this.domain = config.require('domain');
     const ipName = config.require('ipName');
 

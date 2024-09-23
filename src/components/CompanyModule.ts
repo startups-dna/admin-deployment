@@ -4,6 +4,7 @@ import * as random from '@pulumi/random';
 import { globalConfig } from '../config';
 import { HasOutput, HasPathRules } from '../interfaces';
 import { GoogleApisResources } from './GoogleApisResources';
+import { MODULE_VERSIONS } from '../constants';
 
 const PREFIX = 'admin-company';
 const DB_USER = 'admin-company';
@@ -51,10 +52,10 @@ export class CompanyModule
     const concurrency = config.getNumber('concurrency') || 80;
     const serviceImage =
       config.get('serviceImage') ||
-      'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/company:0.4.0';
+      `europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/company:${MODULE_VERSIONS.company}`;
     const dbImage =
       config.get('dbImage') ||
-      'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/company-db:0.4.0';
+      `europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/company-db:${MODULE_VERSIONS.company}`;
 
     this.dbInstance = gcp.sql.DatabaseInstance.get(
       `${PREFIX}-sql-instance`,
