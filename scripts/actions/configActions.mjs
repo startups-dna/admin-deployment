@@ -24,7 +24,7 @@ async function init() {
 }
 
 async function deploy() {
-  if (!(await confirm({ message: 'Do you want to apply the updates?' }))) {
+  if (!(await confirm({ message: 'Do you want to deploy the updates?' }))) {
     return;
   }
   await pulumiUp();

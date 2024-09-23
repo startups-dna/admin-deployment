@@ -22,7 +22,7 @@ const actions = {
     callback: setupAction,
   },
   ['init-admin']: {
-    name: '🔑 Initialize admin user',
+    name: '🔑 Initialize admin user access',
     callback: initAdminAction,
   },
   ['config:main']: {
