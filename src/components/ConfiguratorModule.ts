@@ -3,7 +3,7 @@ import * as gcp from '@pulumi/gcp';
 import { globalConfig } from '../config';
 import { HasOutput } from '../interfaces';
 import { CompanyModule } from './CompanyModule';
-import { MODULE_VERSIONS } from '../constants';
+import { companyDockerImages } from '../constants';
 
 const PREFIX = 'admin-configurator';
 
@@ -26,7 +26,7 @@ export class ConfiguratorModule
 
     const authConfig = new pulumi.Config('auth');
     const authTenantId = authConfig.get('tenantId');
-    const serviceImage = `europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/configurator:${MODULE_VERSIONS.company}`;
+    const serviceImage = companyDockerImages.configurator;
 
     // Create a Cloud Run service definition.
     this.service = new gcp.cloudrunv2.Service(
