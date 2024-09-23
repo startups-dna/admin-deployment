@@ -3,6 +3,7 @@ import * as gcp from '@pulumi/gcp';
 import { GoogleApisResources } from './GoogleApisResources';
 import { globalConfig } from '../config';
 import { HasOutput } from '../interfaces';
+import { MODULE_VERSIONS } from '../constants';
 
 const PREFIX = 'admin-core';
 
@@ -30,7 +31,7 @@ export class CoreModule extends pulumi.ComponentResource implements HasOutput {
     const concurrency = config.getNumber('concurrency') || 80;
     const image =
       config.get('serviceImage') ||
-      'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/core:0.3.2';
+      `europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/core:${MODULE_VERSIONS.core}`;
 
     // Define resources
     const apiKey = new gcp.projects.ApiKey(`${PREFIX}-web-api-key`, {

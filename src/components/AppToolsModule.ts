@@ -5,6 +5,7 @@ import { DatabaseResources } from './DatabaseResources';
 import { HasOutput, HasPathRules } from '../interfaces';
 import { GoogleApisResources } from './GoogleApisResources';
 import { SecretResources } from './SecretResources';
+import { MODULE_VERSIONS } from '../constants';
 
 const PREFIX = 'admin-app-tools';
 const DB_USER = 'admin-app-tools';
@@ -67,10 +68,10 @@ export class AppToolsModule
     const concurrency = config.getNumber('concurrency') || 80;
     const serviceImage =
       config.get('serviceImage') ||
-      'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/app-tools:0.4.0';
+      `europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/app-tools:${MODULE_VERSIONS.appTools}`;
     const dbImage =
       config.get('dbImage') ||
-      'europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/app-tools-db:0.4.0';
+      `europe-west1-docker.pkg.dev/startupsdna-tools/admin-services/app-tools-db:${MODULE_VERSIONS.appTools}`;
     const appStoreAppId = config.get('appStoreAppId');
     this.appStoreConnectConfig =
       config.getSecretObject<AppStoreConnectConfig>('appStoreConnect');
