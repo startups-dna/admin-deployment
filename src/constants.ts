@@ -1,5 +1,5 @@
 export const MODULE_VERSIONS = {
-  company: '0.4.0',
-  appTools: '0.4.0',
-  core: '0.3.2',
+  company: '0.5.0',
+  appTools: '0.5.0',
+  core: '0.3.3',
 };
