@@ -11,6 +11,7 @@ const PREFIX = 'feedback-api';
 type FeedbackApiModuleArgs = {
   googleApis: GoogleApisResources;
   database: DatabaseResources;
+  storageBucketName: pulumi.Input<string>;
 };
 
 export class FeedbackApiModule
@@ -73,6 +74,10 @@ export class FeedbackApiModule
                 {
                   name: 'LOGGER_LEVEL',
                   value: 'debug',
+                },
+                {
+                  name: 'FIREBASE_BUCKET_NAME',
+                  value: args.storageBucketName,
                 },
               ],
               volumeMounts: [{ name: 'cloudsql', mountPath: '/cloudsql' }],

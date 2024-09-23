@@ -40,6 +40,7 @@ if (globalConfig.modules?.appTools) {
   feedbackApiModule = new FeedbackApiModule({
     googleApis,
     database: appToolsModule.database,
+    storageBucketName: storage.bucket.name,
   });
   adminLb.addPathRules(appToolsModule.pathRules());
 }
