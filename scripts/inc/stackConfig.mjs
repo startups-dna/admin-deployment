@@ -19,31 +19,18 @@ import {
   pulumiConfigSet,
 } from './pulumi.mjs';
 
-export function isConfigAlterMode() {
-  // read '--alter' flag from command line
-  return process.argv.includes('--alter');
-}
-
-export async function initStackConfig() {
-  echo.log('Setting up stack configuration...');
-  const alterMode = isConfigAlterMode();
-  const configurator = new StackConfigurator(alterMode);
-  await configurator.load();
-
-  echo.log('Current stack configuration:');
-  console.log('- GCP project:', chalk.bold(configurator.get('gcp:project')));
-  console.log(
-    '- GCP default region:',
-    chalk.bold(configurator.get('gcp:region')),
-  );
-
+/**
+ * @param {StackConfigurator} configurator
+ * @return {Promise<void>}
+ */
+export async function promptMainConfig(configurator) {
   if (!configurator.get('gcp:project')) {
     const gcpProject = await selectGcloudProject({
       message: 'GCP project (Admin services will be deployed there):',
       default: getGcpDefaultProject(),
       validate: (value) => !!value || 'Project is required',
     });
-    configurator.set('gcp:project', gcpProject);
+    await configurator.set('gcp:project', gcpProject);
   }
 
   await configurator.prompt('gcp:region', async (currentValue) => {
@@ -133,7 +120,13 @@ export async function initStackConfig() {
       validate: (value) => !!value || 'Value is required',
     });
   });
+}
 
+/**
+ * @param {StackConfigurator} configurator
+ * @return {Promise<void>}
+ */
+export async function promptJiraConfig(configurator) {
   await configurator.prompt('company:jira.enabled', async (currentValue) => {
     return confirm({
       message: 'Enable jira integration?',
@@ -141,48 +134,49 @@ export async function initStackConfig() {
     });
   });
 
-  if (configurator.get('company:jira.enabled')) {
-    await configurator.prompt('company:jira.baseUrl', async (currentValue) => {
-      return input({
-        message: 'Enter jira base url:',
-        default: currentValue,
-        validate: (value) => !!value || 'Value is required',
-      });
-    });
-
-    await configurator.promptSecret(
-      'company:jira.token',
-      async (currentValue) => {
-        return input({
-          message: 'Enter jira token:',
-          default: currentValue,
-          validate: (value) => !!value || 'Value is required',
-        });
-      },
-    );
-
-    await configurator.prompt('company:jira.email', async (currentValue) => {
-      return input({
-        message:
-          'Enter the jira email address where you received your jira token:',
-        default: currentValue,
-        validate: (value) => !!value || 'Value is required',
-      });
-    });
+  if (!configurator.get('company:jira.enabled')) {
+    return;
   }
 
-  await initAppToolsConfig(configurator);
-  await initAppCmsConfig(configurator);
+  await configurator.prompt('company:jira.baseUrl', async (currentValue) => {
+    return input({
+      message: 'Enter jira base url:',
+      default: currentValue,
+      validate: (value) => !!value || 'Value is required',
+    });
+  });
 
-  echo.success('Stack configuration done.');
+  await configurator.promptSecret(
+    'company:jira.token',
+    async (currentValue) => {
+      return input({
+        message: 'Enter jira token:',
+        default: currentValue,
+        validate: (value) => !!value || 'Value is required',
+      });
+    },
+  );
+
+  await configurator.prompt('company:jira.email', async (currentValue) => {
+    return input({
+      message:
+        'Enter the jira email address where you received your jira token:',
+      default: currentValue,
+      validate: (value) => !!value || 'Value is required',
+    });
+  });
 }
 
-async function initAppToolsConfig(configurator) {
+/**
+ * @param {StackConfigurator} configurator
+ * @return {Promise<void>}
+ */
+export async function promptAppToolsConfig(configurator) {
   // migrate old config
   if (configurator.get('appTools:enabled')) {
     const enabled = configurator.get('appTools:enabled') === 'true';
-    configurator.set(`${PULUMI_PROJECT}:modules.appTools`, enabled);
-    configurator.unset('appTools:enabled');
+    await configurator.set(`${PULUMI_PROJECT}:modules.appTools`, enabled);
+    await configurator.unset('appTools:enabled');
   }
 
   await configurator.prompt(
@@ -320,7 +314,11 @@ async function initAppToolsConfig(configurator) {
   }
 }
 
-async function initAppCmsConfig(configurator) {
+/**
+ * @param {StackConfigurator} configurator
+ * @return {Promise<void>}
+ */
+export async function promptAppCmsConfig(configurator) {
   await configurator.prompt(
     `${PULUMI_PROJECT}:modules.appCms`,
     async (currentValue) => {
@@ -360,13 +358,13 @@ async function initAppCmsConfig(configurator) {
   });
 }
 
-class StackConfigurator {
+export class StackConfigurator {
   constructor(alterMode) {
     this.alterMode = alterMode;
     this.values = {};
   }
 
-  async load() {
+  async #load() {
     this.values = await getPulumiStackConfig();
   }
 
@@ -410,5 +408,15 @@ class StackConfigurator {
   async unset(key) {
     setValue(this.values, key, undefined);
     await pulumiConfigRm(key);
+  }
+
+  /**
+   * @param {boolean} alterMode
+   * @return {Promise<StackConfigurator>}
+   */
+  static async create(alterMode) {
+    const instance = new StackConfigurator(alterMode);
+    await instance.#load();
+    return instance;
   }
 }

@@ -20,7 +20,7 @@ npm install
 2. Run the following commands to set up the project:
 
    ```bash
-   ./setup
+   ./run setup
    ```
 
 3. **This step is optional, if you didn't choose manual creation**. <br>
@@ -43,21 +43,21 @@ npm install
 Run the following command to deploy:
 
 ```bash
-./deploy
+./run deploy
 ```
 
 ## Admin access
 
-In order to initialize the admin user, run the following command:
+In order to initialize the admin user access, run the following command:
 
 ```bash
-./init-admin
+./run init-admin
 ```
 
-## Alter mode
+## Change configuration
 
-If you want to alter the deployment configuration, you can run the command with special flag:
+If you want to change the deployment configuration, you can run the command with no arguments and choose the desired action:
 
 ```bash
-./deploy --alter
+./run
 ```
